@@ -49,6 +49,33 @@ class PantryController extends Controller
         $hasPrintedExpiry = ! empty($data['expiry_date']);
         $source = $data['purchase_source'] ?? 'unknown';
         $estimated = $freshness->estimate($data['name'], $data['unit'] ?? null, $data['storage_type'] ?? null, $source);
+        $expiryDate = $data['expiry_date'] ?? $estimated['expiry_date'];
+
+        if ($expiryDate === null) {
+            $existing = PantryItem::query()
+                ->when(
+                    ($data['family_id'] ?? null) === null,
+                    fn ($query) => $query->where('user_id', $request->user()->id)->whereNull('family_id'),
+                    fn ($query) => $query->where('family_id', $data['family_id'])
+                )
+                ->whereRaw('lower(name) = ?', [strtolower($data['name'])])
+                ->whereRaw('lower(unit) = ?', [strtolower((string) ($data['unit'] ?? ''))])
+                ->where(fn ($query) => $query->whereNull('expiry_date')->orWhere('is_expiry_estimated', true))
+                ->whereIn('freshness_status', ['fresh', 'review'])
+                ->first();
+            if ($existing !== null) {
+                $total = round((float) ($existing->quantity_value ?? $existing->quantity) + (float) $data['quantity'], 3);
+                $existing->update([
+                    'quantity_value' => $total,
+                    'quantity' => (string) $total,
+                    'expiry_date' => null,
+                    'freshness_review_date' => null,
+                    'freshness_status' => 'fresh',
+                ]);
+
+                return response()->json(['item' => $existing->fresh(), 'message' => 'Pantry stock added to the existing item.'], 201);
+            }
+        }
 
         $item = PantryItem::create([
             ...$data,
@@ -58,7 +85,7 @@ class PantryController extends Controller
             'purchase_source' => $source,
             'storage_type' => $data['storage_type'] ?? 'unknown',
             'freshness_condition' => $data['freshness_condition'] ?? 'unknown',
-            'expiry_date' => $data['expiry_date'] ?? $estimated['expiry_date'],
+            'expiry_date' => $expiryDate,
             'freshness_review_date' => $data['freshness_review_date'] ?? ($hasPrintedExpiry ? $data['expiry_date'] : $estimated['review_date']),
             'freshness_status' => $hasPrintedExpiry ? 'fresh' : $estimated['status'],
             'freshness_confidence' => $hasPrintedExpiry ? 'high' : $estimated['confidence'],
@@ -139,17 +166,23 @@ class PantryController extends Controller
 
             return response()->json(['item' => $item->fresh(), 'message' => 'Last usage was undone.']);
         }
+        if ($data['action'] === 'still_fresh' && $item->expiry_date !== null && $item->expiry_date->lt(today())) {
+            throw ValidationException::withMessages([
+                'action' => ['An expired ingredient cannot be marked as still fresh.'],
+            ]);
+        }
         $updates = match ($data['action']) {
             'still_fresh' => [
                 'freshness_status' => 'fresh',
                 'freshness_condition' => 'fresh',
-                'freshness_review_date' => $data['review_date'] ?? now()->addDay()->toDateString(),
+                'freshness_review_date' => now()->addDay()->toDateString(),
             ],
             'spoiled' => ['freshness_status' => 'spoiled'],
             'used' => ['freshness_status' => 'used'],
             'discarded' => ['freshness_status' => 'discarded'],
         };
-        if ($data['action'] === 'still_fresh' && $item->is_expiry_estimated) {
+        if ($data['action'] === 'still_fresh') {
+            // A user-confirmed extension also gives legacy undated items a date.
             $updates['expiry_date'] = $updates['freshness_review_date'];
         }
         $item->update($updates);

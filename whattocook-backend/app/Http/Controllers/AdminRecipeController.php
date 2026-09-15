@@ -4,7 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\Recipe;
 use App\Services\IngredientCatalogService;
+use App\Services\RecipeNutritionService;
+use App\Services\UsdaFoodDataService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -38,18 +41,19 @@ class AdminRecipeController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, UsdaFoodDataService $usda, RecipeNutritionService $nutrition): RedirectResponse
     {
         $data = $this->validated($request);
 
-        $recipe = DB::transaction(function () use ($data, $request) {
+        $recipe = DB::transaction(function () use ($data, $request, $usda) {
             $recipe = Recipe::create(collect($data)->except('ingredients')->all() + [
                 'created_by' => $request->user()->id,
             ]);
-            $recipe->ingredients()->createMany($data['ingredients']);
+            $recipe->ingredients()->createMany($this->nutritionLinkedIngredients($data['ingredients'], $usda));
 
             return $recipe;
         });
+        $nutrition->updateRecipeMacros($recipe);
 
         return redirect()->route('admin.recipes.edit', $recipe)
             ->with('success', 'Recipe created. You can continue editing it below.');
@@ -58,22 +62,26 @@ class AdminRecipeController extends Controller
     public function edit(Recipe $recipe): View
     {
         return view('admin.recipes.edit', [
-            'recipe' => $recipe->load('ingredients'),
+            'recipe' => $recipe->load('ingredients.nutritionFood'),
             'ingredients' => $recipe->ingredients
-                ->map(fn ($ingredient) => $ingredient->only(['name', 'quantity', 'unit', 'is_substitute']))
+                ->map(fn ($ingredient) => array_merge(
+                    $ingredient->only(['name', 'quantity', 'unit', 'nutrition_grams', 'is_substitute']),
+                    ['nutrition_fdc_id' => $ingredient->nutritionFood?->fdc_id]
+                ))
                 ->all(),
         ]);
     }
 
-    public function update(Request $request, Recipe $recipe): RedirectResponse
+    public function update(Request $request, Recipe $recipe, UsdaFoodDataService $usda, RecipeNutritionService $nutrition): RedirectResponse
     {
         $data = $this->validated($request, $recipe);
 
-        DB::transaction(function () use ($data, $recipe) {
+        DB::transaction(function () use ($data, $recipe, $usda) {
             $recipe->update(collect($data)->except('ingredients')->all());
             $recipe->ingredients()->delete();
-            $recipe->ingredients()->createMany($data['ingredients']);
+            $recipe->ingredients()->createMany($this->nutritionLinkedIngredients($data['ingredients'], $usda));
         });
+        $nutrition->updateRecipeMacros($recipe->fresh());
 
         return redirect()->route('admin.recipes.edit', $recipe)
             ->with('success', 'Recipe updated.');
@@ -84,6 +92,14 @@ class AdminRecipeController extends Controller
         $recipe->delete();
 
         return redirect()->route('admin.recipes.index')->with('success', 'Recipe deleted.');
+    }
+
+    /** Search FoodData Central without exposing the USDA key to the browser. */
+    public function nutritionSearch(Request $request, UsdaFoodDataService $usda): JsonResponse
+    {
+        $data = $request->validate(['query' => ['required', 'string', 'min:2', 'max:255']]);
+
+        return response()->json(['foods' => $usda->normalizedSearch($data['query'], 8)]);
     }
 
     private function validated(Request $request, ?Recipe $recipe = null): array
@@ -116,6 +132,8 @@ class AdminRecipeController extends Controller
             'ingredients.*.name' => ['required', 'string', 'max:255'],
             'ingredients.*.quantity' => ['nullable', 'string', 'max:255'],
             'ingredients.*.unit' => ['nullable', 'string', 'max:255'],
+            'ingredients.*.nutrition_fdc_id' => ['nullable', 'integer', 'min:1', 'required_with:ingredients.*.nutrition_grams'],
+            'ingredients.*.nutrition_grams' => ['nullable', 'numeric', 'gt:0', 'max:100000', 'required_with:ingredients.*.nutrition_fdc_id'],
             'ingredients.*.is_substitute' => ['nullable', 'boolean'],
         ]);
 
@@ -144,5 +162,19 @@ class AdminRecipeController extends Controller
         unset($ingredient);
 
         return $data;
+    }
+
+    private function nutritionLinkedIngredients(array $ingredients, UsdaFoodDataService $usda): array
+    {
+        return collect($ingredients)->map(function (array $ingredient) use ($usda) {
+            $fdcId = $ingredient['nutrition_fdc_id'] ?? null;
+            unset($ingredient['nutrition_fdc_id']);
+
+            if ($fdcId !== null) {
+                $ingredient['nutrition_food_id'] = $usda->cacheFood((int) $fdcId)->id;
+            }
+
+            return $ingredient;
+        })->all();
     }
 }

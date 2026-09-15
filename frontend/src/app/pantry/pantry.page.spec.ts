@@ -56,6 +56,29 @@ describe('PantryPage', () => {
     expect(component.filteredItems(component.personalItems)).toEqual([rice]);
   });
 
+  it('labels a past expiry as expired and makes it available for disposal', () => {
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const expiry = `${yesterday.getFullYear()}-${String(yesterday.getMonth() + 1).padStart(2, '0')}-${String(yesterday.getDate()).padStart(2, '0')}`;
+    const item: any = { id: 1, name: 'Milk', freshness_status: 'fresh', expiry_date: expiry };
+
+    expect(component.isExpired(item)).toBeTrue();
+    expect(component.stockLabel(item)).toBe('Expired');
+  });
+
+  it('offers still fresh only for unexpired active ingredients, including undated stock', () => {
+    const today = new Date();
+    const date = (offset: number) => { const value = new Date(today); value.setDate(value.getDate() + offset); return `${value.getFullYear()}-${String(value.getMonth() + 1).padStart(2, '0')}-${String(value.getDate()).padStart(2, '0')}`; };
+
+    expect(component.canMarkStillFresh({ id: 1, name: 'Eggs', freshness_status: 'fresh', freshness_review_date: date(0) })).toBeTrue();
+    expect(component.canMarkStillFresh({ id: 7, name: 'Rice', freshness_status: 'fresh' })).toBeFalse();
+    expect(component.canMarkStillFresh({ id: 2, name: 'Milk', freshness_status: 'fresh', expiry_date: date(0) })).toBeTrue();
+    expect(component.canMarkStillFresh({ id: 3, name: 'Milk', freshness_status: 'fresh', expiry_date: date(1) })).toBeFalse();
+    expect(component.canMarkStillFresh({ id: 4, name: 'Milk', freshness_status: 'fresh', expiry_date: date(2) })).toBeFalse();
+    expect(component.canMarkStillFresh({ id: 5, name: 'Milk', freshness_status: 'fresh', expiry_date: date(-1) })).toBeFalse();
+    expect(component.canMarkStillFresh({ id: 6, name: 'Milk', freshness_status: 'spoiled', expiry_date: date(1) })).toBeFalse();
+  });
+
   it('shows a confirmed purchase in the correct pantry scope immediately', () => {
     const changes = TestBed.inject(PantryChangeService);
     component.personalItems = [{ id: 1, name: 'Rice', family_id: null }];

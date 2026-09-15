@@ -45,19 +45,36 @@ class ConfirmedPurchaseService
 
         // Keep lots with different expiry/source details separate so freshness
         // prompts remain accurate. Matching units still consolidate duplicates.
-        $lot = PantryItem::where('user_id', $userId)
-            ->when($shoppingItem->family_id === null, fn ($q) => $q->whereNull('family_id'), fn ($q) => $q->where('family_id', $shoppingItem->family_id))
+        $lotQuery = PantryItem::query()
+            ->when(
+                $shoppingItem->family_id === null,
+                fn ($q) => $q->where('user_id', $userId)->whereNull('family_id'),
+                fn ($q) => $q->where('family_id', $shoppingItem->family_id)
+            )
             ->whereRaw('lower(name) = ?', [strtolower($name)])
             ->whereRaw('lower(unit) = ?', [$unit])
-            ->whereDate('expiry_date', $expiry)
-            ->where('purchase_source', $source)
-            ->where('storage_type', $storage)
-            ->lockForUpdate()
-            ->first();
+            ->whereIn('freshness_status', ['fresh', 'review']);
+
+        // Undated shelf-stable staples are one stock pool. Dated products keep
+        // separate lots so their expiry information remains meaningful.
+        if ($expiry === null) {
+            $lotQuery->where(fn ($query) => $query->whereNull('expiry_date')->orWhere('is_expiry_estimated', true));
+        } else {
+            $lotQuery->whereDate('expiry_date', $expiry)
+                ->where('purchase_source', $source)
+                ->where('storage_type', $storage);
+        }
+        $lot = $lotQuery->lockForUpdate()->first();
 
         if ($lot) {
             $total = round((float) $lot->quantity_value + $quantity, 3);
-            $lot->update(['quantity_value' => $total, 'quantity' => (string) $total]);
+            $lot->update([
+                'quantity_value' => $total,
+                'quantity' => (string) $total,
+                'expiry_date' => $expiry,
+                'freshness_review_date' => $expiry === null ? null : $lot->freshness_review_date,
+                'freshness_status' => $expiry === null ? 'fresh' : $lot->freshness_status,
+            ]);
             return $lot->fresh();
         }
 

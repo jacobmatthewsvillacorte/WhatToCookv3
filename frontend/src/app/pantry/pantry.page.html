@@ -39,11 +39,20 @@
     <ng-container *ngIf="!loading && !pantryLoadError">
       <ng-container *ngFor="let group of inventoryGroups()">
         <section class="inventory-section" *ngIf="inventoryVisible(group.key) && filteredItems(group.items).length">
-          <div class="section-heading"><div><h2>{{ group.title }}</h2><p>{{ group.shared ? 'Shared inventory' : 'Personal inventory' }}</p></div><span>{{ filteredItems(group.items).length }} items</span></div>
+          <div class="section-heading"><div><h2>{{ group.title }}</h2><p>{{ group.shared ? 'Shared inventory' : 'Personal inventory' }}</p></div><div class="section-heading__actions"><ion-button *ngIf="expiredItems(group.items).length" fill="clear" size="small" color="danger" (click)="deleteExpiredItems(group.items)">Delete expired ({{ expiredItems(group.items).length }})</ion-button><span>{{ filteredItems(group.items).length }} items</span></div></div>
           <article class="pantry-card" *ngFor="let item of filteredItems(group.items)" [class.attention]="stockState(item) === 'expiring'">
             <div class="ingredient-icon" [class.warning]="stockState(item) !== 'good'"><ion-icon [name]="itemCategory(item) === 'Protein' ? 'fish-outline' : itemCategory(item) === 'Produce' ? 'leaf-outline' : 'basket-outline'"></ion-icon></div>
             <div class="item-copy"><h3>{{ item.name }}</h3><p>{{ item.quantity || item.quantity_value || '—' }} {{ item.unit || '' }}</p><span class="state" [class.low]="stockState(item) === 'low'" [class.expiring]="stockState(item) === 'expiring'"><ion-icon [name]="stockState(item) === 'good' ? 'checkmark-circle-outline' : 'alert-circle-outline'"></ion-icon>{{ stockLabel(item) }}</span></div>
             <ion-button fill="clear" size="small" (click)="edit(item)" [attr.aria-label]="'Edit ' + item.name"><ion-icon name="ellipsis-horizontal"></ion-icon></ion-button>
+            <div class="freshness-actions" *ngIf="canMarkStillFresh(item)">
+              <ion-button size="small" fill="outline" color="success" (click)="recordFreshnessAction(item, 'still_fresh')" [disabled]="updatingFreshnessIds.has(item.id)">
+                <ion-icon name="checkmark-circle-outline" slot="start"></ion-icon>Still fresh
+              </ion-button>
+              <span>Sets expiry to tomorrow</span>
+            </div>
+            <div class="expired-actions" *ngIf="isExpired(item)">
+              <ion-button size="small" fill="outline" color="danger" (click)="deletePantryItem(item)"><ion-icon name="trash-outline" slot="start"></ion-icon>Delete expired item</ion-button>
+            </div>
           </article>
         </section>
       </ng-container>

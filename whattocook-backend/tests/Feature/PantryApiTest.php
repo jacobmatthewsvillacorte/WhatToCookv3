@@ -125,7 +125,69 @@ class PantryApiTest extends TestCase
             $this->actingAs($user, 'sanctum')->patchJson("/api/pantry/{$item['id']}/freshness", [
                 'action' => 'still_fresh', 'review_date' => '2026-07-25',
             ])->assertOk()->assertJsonPath('item.freshness_status', 'fresh')
-                ->assertJsonPath('item.expiry_date', '2026-07-25T00:00:00.000000Z');
+                ->assertJsonPath('item.expiry_date', '2026-07-22T00:00:00.000000Z');
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_still_fresh_sets_tomorrows_expiry_for_dated_and_undated_unexpired_items(): void
+    {
+        Carbon::setTestNow('2026-07-21 12:00:00');
+        try {
+            $user = User::factory()->create();
+            $undated = PantryItem::create([
+                'user_id' => $user->id, 'name' => 'Eggs', 'quantity' => '6', 'quantity_value' => 6,
+                'unit' => 'pieces', 'freshness_status' => 'fresh', 'is_expiry_estimated' => false,
+            ]);
+            $dated = PantryItem::create([
+                'user_id' => $user->id, 'name' => 'Milk', 'quantity' => '1', 'quantity_value' => 1,
+                'unit' => 'litre', 'freshness_status' => 'fresh', 'expiry_date' => '2026-07-22',
+            ]);
+
+            foreach ([$undated, $dated] as $item) {
+                $this->actingAs($user, 'sanctum')->patchJson("/api/pantry/{$item->id}/freshness", ['action' => 'still_fresh'])
+                    ->assertOk()
+                    ->assertJsonPath('item.freshness_status', 'fresh')
+                    ->assertJsonPath('item.expiry_date', '2026-07-22T00:00:00.000000Z')
+                    ->assertJsonPath('item.freshness_review_date', '2026-07-22T00:00:00.000000Z');
+            }
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    public function test_undated_shelf_stable_stock_stays_fresh_and_adds_to_the_existing_quantity(): void
+    {
+        $user = User::factory()->create();
+        $first = $this->actingAs($user, 'sanctum')->postJson('/api/pantry', [
+            'name' => 'Rice', 'quantity' => 4, 'unit' => 'kg',
+        ])->assertCreated()->json('item');
+
+        $this->assertNull($first['expiry_date']);
+        $this->assertNull($first['freshness_review_date']);
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/pantry', [
+            'name' => 'Rice', 'quantity' => 10, 'unit' => 'kg',
+        ])->assertCreated()->assertJsonPath('item.quantity_value', '14.000');
+
+        $this->assertDatabaseCount('pantry_items', 1);
+        $this->assertDatabaseHas('pantry_items', ['id' => $first['id'], 'name' => 'Rice', 'quantity_value' => 14, 'expiry_date' => null]);
+    }
+
+    public function test_an_expired_item_cannot_be_marked_still_fresh(): void
+    {
+        Carbon::setTestNow('2026-07-21 12:00:00');
+        try {
+            $user = User::factory()->create();
+            $item = PantryItem::create([
+                'user_id' => $user->id, 'name' => 'Milk', 'quantity' => '1', 'quantity_value' => 1,
+                'unit' => 'litre', 'freshness_status' => 'review', 'expiry_date' => '2026-07-20',
+            ]);
+
+            $this->actingAs($user, 'sanctum')->patchJson("/api/pantry/{$item->id}/freshness", ['action' => 'still_fresh'])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors('action');
         } finally {
             Carbon::setTestNow();
         }

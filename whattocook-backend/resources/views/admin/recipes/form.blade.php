@@ -1,7 +1,7 @@
 @php
     $formIngredients = old('ingredients', $ingredients);
     if (count($formIngredients) === 0) {
-        $formIngredients = [['name' => '', 'quantity' => '', 'unit' => '', 'is_substitute' => false]];
+        $formIngredients = [['name' => '', 'quantity' => '', 'nutrition_fdc_id' => '', 'nutrition_grams' => '', 'unit' => '', 'is_substitute' => false]];
     }
 @endphp
 
@@ -113,6 +113,23 @@
                     <input name="ingredients[{{ $index }}][unit]" value="{{ $ingredient['unit'] ?? '' }}" placeholder="e.g. g, cup, pcs">
                     @error("ingredients.$index.unit") <p class="error-text">{{ $message }}</p> @enderror
                 </div>
+                <div class="field">
+                    <label>USDA food record</label>
+                    <input data-nutrition-query value="{{ $ingredient['name'] ?? '' }}" placeholder="Search USDA food">
+                    <button class="secondary" type="button" data-search-nutrition>Search USDA</button>
+                    <div data-nutrition-results class="help" aria-live="polite"></div>
+                </div>
+                <div class="field">
+                    <label>USDA FDC ID</label>
+                    <input data-fdc-id name="ingredients[{{ $index }}][nutrition_fdc_id]" type="number" min="1" value="{{ $ingredient['nutrition_fdc_id'] ?? '' }}" placeholder="Select a search result">
+                    @error("ingredients.$index.nutrition_fdc_id") <p class="error-text">{{ $message }}</p> @enderror
+                </div>
+                <div class="field">
+                    <label>Ingredient weight (g)</label>
+                    <input name="ingredients[{{ $index }}][nutrition_grams]" type="number" min="0.001" step="0.001" value="{{ $ingredient['nutrition_grams'] ?? '' }}" placeholder="e.g. 500">
+                    <p class="help">Use the actual edible weight for this recipe.</p>
+                    @error("ingredients.$index.nutrition_grams") <p class="error-text">{{ $message }}</p> @enderror
+                </div>
                 <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;">
                     <label style="display:flex; align-items:center; gap:6px; margin:0; font-weight:500;"><input type="hidden" name="ingredients[{{ $index }}][is_substitute]" value="0"><input type="checkbox" name="ingredients[{{ $index }}][is_substitute]" value="1" @checked((bool) ($ingredient['is_substitute'] ?? false)) style="width:auto;"> Substitute</label>
                     <button class="danger" type="button" data-remove-ingredient>Remove</button>
@@ -153,6 +170,9 @@
                 <div class="field"><label>Ingredient *</label><input name="ingredients[${index}][name]" required placeholder="e.g. Chicken"></div>
                 <div class="field"><label>Quantity</label><input name="ingredients[${index}][quantity]" placeholder="e.g. 500"></div>
                 <div class="field"><label>Unit</label><input name="ingredients[${index}][unit]" placeholder="e.g. g, cup, pcs"></div>
+                <div class="field"><label>USDA food record</label><input data-nutrition-query placeholder="Search USDA food"><button class="secondary" type="button" data-search-nutrition>Search USDA</button><div data-nutrition-results class="help" aria-live="polite"></div></div>
+                <div class="field"><label>USDA FDC ID</label><input data-fdc-id name="ingredients[${index}][nutrition_fdc_id]" type="number" min="1" placeholder="Select a search result"></div>
+                <div class="field"><label>Ingredient weight (g)</label><input name="ingredients[${index}][nutrition_grams]" type="number" min="0.001" step="0.001" placeholder="e.g. 500"><p class="help">Use the actual edible weight for this recipe.</p></div>
                 <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;"><label style="display:flex; align-items:center; gap:6px; margin:0; font-weight:500;"><input type="hidden" name="ingredients[${index}][is_substitute]" value="0"><input type="checkbox" name="ingredients[${index}][is_substitute]" value="1" style="width:auto;"> Substitute</label><button class="danger" type="button" data-remove-ingredient>Remove</button></div>
             </div>`;
 
@@ -162,6 +182,34 @@
         });
 
         rows.addEventListener('click', (event) => {
+            const searchButton = event.target.closest('[data-search-nutrition]');
+            if (searchButton) {
+                const row = searchButton.closest('[data-ingredient-row]');
+                const query = row.querySelector('[data-nutrition-query]').value.trim();
+                const results = row.querySelector('[data-nutrition-results]');
+                if (query.length < 2) { results.textContent = 'Enter at least two characters to search USDA.'; return; }
+                results.textContent = 'Searching USDA…';
+                fetch(`{{ route('admin.nutrition.search') }}?query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } })
+                    .then(async response => {
+                        if (!response.ok) throw new Error((await response.json()).message || 'USDA search failed.');
+                        return response.json();
+                    })
+                    .then(({ foods }) => {
+                        if (!foods.length) { results.textContent = 'No USDA results found. Try a simpler ingredient name.'; return; }
+                        results.replaceChildren(...foods.map(food => {
+                            const button = document.createElement('button');
+                            button.type = 'button'; button.className = 'secondary';
+                            button.textContent = `${food.description} (FDC ${food.fdc_id})`;
+                            button.addEventListener('click', () => {
+                                row.querySelector('[data-fdc-id]').value = food.fdc_id;
+                                results.textContent = `Selected: ${food.description}.`;
+                            });
+                            return button;
+                        }));
+                    })
+                    .catch(error => { results.textContent = error.message || 'Could not search USDA.'; });
+                return;
+            }
             if (!event.target.matches('[data-remove-ingredient]')) return;
             const allRows = rows.querySelectorAll('[data-ingredient-row]');
             if (allRows.length === 1) {

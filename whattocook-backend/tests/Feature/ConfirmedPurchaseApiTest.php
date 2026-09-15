@@ -48,17 +48,17 @@ class ConfirmedPurchaseApiTest extends TestCase
         PantryItem::create([
             'user_id' => $user->id, 'name' => 'rice', 'quantity' => '1', 'quantity_value' => 1, 'unit' => 'g',
             'purchase_source' => 'unknown', 'storage_type' => 'unknown', 'expiry_date' => now()->addMonths(6)->toDateString(),
+            'is_expiry_estimated' => true,
         ]);
 
-        // Explicitly supply the matching date so this is genuinely the same lot.
         $response = $this->actingAs($user, 'sanctum')->postJson("/api/shopping-list/{$shopping->id}/confirm-purchase", [
             'confirmed' => true, 'quantity' => 500, 'unit' => 'grams', 'purchase_date' => now()->toDateString(),
-            'expiry_date' => now()->addMonths(6)->toDateString(),
         ]);
 
         $response->assertOk()->assertJsonPath('pantry_item.name', 'rice')->assertJsonPath('pantry_item.unit', 'g');
         $this->assertDatabaseCount('pantry_items', 1);
         $this->assertDatabaseHas('pantry_items', ['name' => 'rice', 'quantity_value' => 501]);
+        $this->assertDatabaseHas('pantry_items', ['name' => 'rice', 'expiry_date' => null]);
         $this->assertDatabaseHas('shopping_lists', ['id' => $shopping->id, 'is_purchased' => true]);
     }
 

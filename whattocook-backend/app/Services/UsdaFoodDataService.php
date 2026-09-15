@@ -93,6 +93,7 @@ class UsdaFoodDataService
             ->acceptJson()
             ->timeout(10)
             ->retry(2, 200)
+            ->withOptions(['verify' => config('services.usda.verify_ssl')])
             ->withQueryParameters(['api_key' => $key]);
     }
 }

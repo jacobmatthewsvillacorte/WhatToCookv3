@@ -31,7 +31,7 @@ DB_PASSWORD=<stored-secret>
 CORS_ALLOWED_ORIGINS=https://app.your-domain.example
 ```
 
-Generate `APP_KEY` once with `php artisan key:generate --show` in a secure environment and save it as a host secret. Do not rotate it casually: it invalidates encrypted application data. Set `LOG_LEVEL=warning` or `error` in production. Keep `USDA_API_KEY` server-side only.
+Generate `APP_KEY` once with `php artisan key:generate --show` in a secure environment and save it as a host secret. Do not rotate it casually: it invalidates encrypted application data. Set `LOG_LEVEL=warning` or `error` in production. Keep `USDA_API_KEY` server-side only and leave `USDA_VERIFY_SSL=true`; install a valid CA bundle instead of disabling certificate verification in production.
 
 ## Safe release runbook
 

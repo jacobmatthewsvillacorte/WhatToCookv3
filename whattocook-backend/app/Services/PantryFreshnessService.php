@@ -18,7 +18,19 @@ class PantryFreshnessService
             return $this->estimatedForPackagedItem($purchaseSource);
         }
 
-        if (preg_match('/\b(rice|pasta|noodles|flour|sugar|salt|coffee|tea)\b/', $text)) {
+        if (preg_match('/\b(rice|salt|sugar|flour|dried beans?|lentils|coffee|tea|vinegar|cooking oil)\b/', $text)) {
+            // These pantry staples do not become unsafe overnight. Without a
+            // printed date, keep them as undated stock instead of inventing an
+            // expiry reminder; users can still add a printed date themselves.
+            return [
+                'expiry_date' => null,
+                'review_date' => null,
+                'status' => 'fresh',
+                'confidence' => 'low',
+            ];
+        }
+
+        if (preg_match('/\b(pasta|noodles)\b/', $text)) {
             return $this->estimatedForDryGood($purchaseSource);
         }
 

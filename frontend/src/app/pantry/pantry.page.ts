@@ -40,6 +40,7 @@ export class PantryPage implements OnDestroy {
   selectedCategory = 'All';
   loading = false;
   pantryLoadError = '';
+  updatingFreshnessIds = new Set<number>();
   private hiddenInventoryKeys = new Set<string>();
   private requestedScope?: 'personal' | 'family'; private requestedFamilyId?: number;
   private pantryMutationVersion = 0;
@@ -130,7 +131,11 @@ export class PantryPage implements OnDestroy {
     });
   }
   deletePantryItem(item: PantryItem) { if (!confirm(`Delete ${item.name} from the pantry?`)) return; this.api.deletePantry(item.id).subscribe({ next: () => { if (this.editingId === item.id) this.startAdd(); this.message = 'Pantry item deleted.'; this.loadPantryItems(); }, error: () => this.message = 'Could not delete the pantry item.' }); }
-  async recordFreshnessAction(item: PantryItem, action: 'still_fresh' | 'spoiled' | 'used' | 'discarded' | 'undo_used') { if (action === 'used') { const modal = await this.modalController.create({ component: UseAmountModalComponent, componentProps: { item }, initialBreakpoint: 0.62, breakpoints: [0, 0.62, 0.9] }); await modal.present(); const { data, role } = await modal.onDidDismiss<{ amount: number; reason: string }>(); if (role !== 'confirm' || !data) return; this.api.updateFreshness(item.id, 'used', data.amount, data.reason).subscribe({ next: ({ item: updated }) => { this.message = `${updated.name} updated.`; this.loadPantryItems(); }, error: error => this.message = error?.error?.message || 'Could not record usage.' }); return; } this.api.updateFreshness(item.id, action).subscribe({ next: ({ item: updated }) => { this.message = `${updated.name} updated.`; this.loadPantryItems(); }, error: error => this.message = error?.error?.message || 'Could not update freshness.' }); }
+  deleteExpiredItems(items: PantryItem[]) { const expired = this.expiredItems(items); if (!expired.length || !confirm(`Delete ${expired.length} expired pantry item${expired.length === 1 ? '' : 's'}? This cannot be undone.`)) return; forkJoin(expired.map(item => this.api.deletePantry(item.id))).subscribe({ next: () => { this.message = `${expired.length} expired pantry item${expired.length === 1 ? '' : 's'} deleted.`; this.loadPantryItems(); }, error: () => { this.message = 'Could not delete all expired pantry items. Please try again.'; this.loadPantryItems(); } }); }
+  async recordFreshnessAction(item: PantryItem, action: 'still_fresh' | 'spoiled' | 'used' | 'discarded' | 'undo_used') { if (action === 'used') { const modal = await this.modalController.create({ component: UseAmountModalComponent, componentProps: { item }, initialBreakpoint: 0.62, breakpoints: [0, 0.62, 0.9] }); await modal.present(); const { data, role } = await modal.onDidDismiss<{ amount: number; reason: string }>(); if (role !== 'confirm' || !data) return; this.api.updateFreshness(item.id, 'used', data.amount, data.reason).subscribe({ next: ({ item: updated }) => { this.message = `${updated.name} updated.`; this.loadPantryItems(); }, error: error => this.message = error?.error?.message || 'Could not record usage.' }); return; } this.updatingFreshnessIds.add(item.id); this.api.updateFreshness(item.id, action).subscribe({ next: ({ item: updated }) => { this.message = action === 'still_fresh' ? `${updated.name} is fresh until tomorrow.` : `${updated.name} updated.`; this.updatingFreshnessIds.delete(item.id); this.loadPantryItems(); }, error: error => { this.updatingFreshnessIds.delete(item.id); this.message = error?.error?.message || 'Could not update freshness.'; } }); }
+  canMarkStillFresh(item: PantryItem): boolean { if (!['fresh', 'review'].includes(item.freshness_status || 'fresh')) return false; if (!item.expiry_date) return !!item.freshness_review_date; return this.dateOnly(item.expiry_date) === this.todayDate(); }
+  isExpired(item: PantryItem): boolean { return !!item.expiry_date && this.dateOnly(item.expiry_date) < this.todayDate(); }
+  expiredItems(items: PantryItem[]): PantryItem[] { return items.filter(item => this.isExpired(item)); }
   isAttention(item: PantryItem): boolean { return item.freshness_status === 'review' || (!!item.freshness_review_date && new Date(item.freshness_review_date).getTime() <= Date.now()); }
   itemCategory(item: PantryItem): string {
     const name = item.name.toLowerCase();
@@ -146,7 +151,7 @@ export class PantryPage implements OnDestroy {
     return items.filter(item => (this.selectedCategory === 'All' || this.itemCategory(item) === this.selectedCategory) && (!query || item.name.toLowerCase().includes(query)));
   }
   stockState(item: PantryItem): 'low' | 'expiring' | 'good' { if (this.isAttention(item) || item.freshness_status === 'spoiled') return 'expiring'; return this.isLowStock(item) ? 'low' : 'good'; }
-  stockLabel(item: PantryItem): string { const state = this.stockState(item); return state === 'expiring' ? (item.freshness_status === 'spoiled' ? 'Expired' : 'Expiring soon') : state === 'low' ? 'Low stock' : 'In stock'; }
+  stockLabel(item: PantryItem): string { if (item.freshness_status === 'discarded') return 'Discarded'; if (this.isExpired(item) || item.freshness_status === 'spoiled') return 'Expired'; const state = this.stockState(item); return state === 'expiring' ? 'Expiring soon' : state === 'low' ? 'Low stock' : 'In stock'; }
   allPantryItems(): PantryItem[] { return [...this.personalItems, ...this.householdItems]; }
   private isLowStock(item: PantryItem): boolean { return Number(item.quantity_value ?? item.quantity ?? 0) <= 1 && !this.isAttention(item); }
   inventoryGroups(): Array<{ title: string; items: PantryItem[]; shared: boolean; key: string }> { return [{ title: 'Your pantry', items: this.personalItems, shared: false, key: 'personal' }, ...this.families.map(family => ({ title: `${family.name} pantry`, items: this.householdItems.filter(item => item.family_id === family.id), shared: true, key: `family-${family.id}` }))]; }
@@ -171,5 +176,6 @@ export class PantryPage implements OnDestroy {
   private readMealReturnContext(): void { const scope = this.route.snapshot.queryParamMap.get('scope'); this.requestedScope = scope === 'family' || scope === 'personal' ? scope : undefined; const familyId = Number(this.route.snapshot.queryParamMap.get('family_id')); this.requestedFamilyId = Number.isInteger(familyId) && familyId > 0 ? familyId : undefined; const mealId = Number(this.route.snapshot.queryParamMap.get('return_to_meal_id')); this.returnToMealId = Number.isInteger(mealId) && mealId > 0 ? mealId : undefined; }
   private emptyForm(familyId: number | null = null): PantryForm { return { name: '', quantity: '1', unit: '', purchase_date: new Date().toISOString().slice(0, 10), expiry_date: '', freshness_review_date: '', purchase_source: 'unknown', storage_type: 'unknown', freshness_condition: 'unknown', family_id: familyId }; }
   private dateOnly(value?: string): string { return value ? value.slice(0, 10) : ''; }
+  private todayDate(): string { const today = new Date(); return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`; }
   private refreshReminders(): void { void this.reminders.schedule([...this.personalItems, ...this.householdItems]); }
 }

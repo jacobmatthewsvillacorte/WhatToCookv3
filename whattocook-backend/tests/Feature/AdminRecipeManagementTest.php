@@ -6,6 +6,7 @@ use App\Models\IngredientCatalog;
 use App\Models\Recipe;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class AdminRecipeManagementTest extends TestCase
@@ -136,6 +137,23 @@ class AdminRecipeManagementTest extends TestCase
             ]))
             ->assertRedirect('/admin/recipes/create')
             ->assertSessionHasErrors('ingredients.1.name');
+    }
+
+    public function test_an_admin_can_search_usda_without_exposing_the_api_key_to_the_browser(): void
+    {
+        $admin = $this->admin();
+        config()->set('services.usda.key', 'test-key');
+        Http::fake(['https://api.nal.usda.gov/fdc/v1/foods/search*' => Http::response([
+            'foods' => [['fdcId' => 123, 'description' => 'Chicken thigh', 'dataType' => 'Foundation']],
+        ])]);
+
+        $this->actingAs($admin)
+            ->getJson('/admin/nutrition/search?query=chicken')
+            ->assertOk()
+            ->assertJsonPath('foods.0.fdc_id', 123)
+            ->assertJsonPath('foods.0.description', 'Chicken thigh');
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'api_key=test-key'));
     }
 
     private function admin(): User
