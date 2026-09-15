@@ -8,7 +8,7 @@ export interface PantryItem { id: number; name: string; quantity?: string; quant
 export interface PackageItem { id: number; name: string; quantity?: number | string; unit?: string; }
 export interface Family { id: number; name: string; owner_id: number; join_code?: string; owner?: { id: number; name: string }; members?: Array<{ id: number; user_id: number; role: string; user?: { id: number; name: string; email: string } }>; }
 export interface RecipeIngredient { name: string; quantity?: string; unit?: string; substitutes: string[]; needs_review?: boolean; pantry_units?: string[]; package_items?: PackageItem[]; }
-export interface RecipeSummary { id: number; name: string; description?: string; servings?: number; prep_time?: number; cook_time?: number; meal_type?: string; difficulty?: string; region?: string; image?: string | null; image_source_url?: string | null; image_attribution?: string | null; }
+export interface RecipeSummary { id: number; name: string; description?: string; servings?: number; prep_time?: number; cook_time?: number; meal_type?: string; difficulty?: string; region?: string; image?: string | null; image_url?: string | null; image_source_url?: string | null; image_attribution?: string | null; }
 export interface Recommendation { recipe: RecipeSummary; match_percentage: number; available_ingredients: RecipeIngredient[]; needs_review_ingredients?: RecipeIngredient[]; missing_ingredients: RecipeIngredient[]; }
 export interface RecipeSearchResponse { data: Recommendation[]; current_page: number; last_page: number; total: number; }
 export interface RecipeDetail extends RecipeSummary { instructions?: string; cooking_tips?: string; ingredients: RecipeIngredient[]; }

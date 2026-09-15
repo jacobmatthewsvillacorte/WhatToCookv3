@@ -93,4 +93,17 @@ class NutritionApiTest extends TestCase
         $this->assertDatabaseHas('nutrition_foods', ['fdc_id' => 123, 'description' => 'Chicken breast']);
         $this->assertDatabaseHas('ingredients', ['id' => $ingredient->id, 'nutrition_grams' => 100]);
     }
+
+    public function test_usda_calories_use_kcal_when_the_food_record_also_contains_kilojoules(): void
+    {
+        config()->set('services.usda.key', 'test-key');
+        $service = app(\App\Services\UsdaFoodDataService::class);
+
+        $nutrients = $service->normalizeNutrients([
+            ['nutrient' => ['id' => 1062, 'name' => 'Energy'], 'amount' => 690],
+            ['nutrient' => ['id' => 1008, 'name' => 'Energy'], 'amount' => 165],
+        ]);
+
+        $this->assertSame(165.0, $nutrients['calories']);
+    }
 }

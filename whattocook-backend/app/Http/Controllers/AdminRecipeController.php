@@ -9,6 +9,7 @@ use App\Services\UsdaFoodDataService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -45,6 +46,10 @@ class AdminRecipeController extends Controller
     {
         $data = $this->validated($request);
 
+        if ($request->hasFile('image')) {
+            $data['image'] = $request->file('image')->store('recipes', 'public');
+        }
+
         $recipe = DB::transaction(function () use ($data, $request, $usda) {
             $recipe = Recipe::create(collect($data)->except('ingredients')->all() + [
                 'created_by' => $request->user()->id,
@@ -76,6 +81,15 @@ class AdminRecipeController extends Controller
     {
         $data = $this->validated($request, $recipe);
 
+        if ($request->hasFile('image')) {
+            if ($recipe->image && ! filter_var($recipe->image, FILTER_VALIDATE_URL)) {
+                Storage::disk('public')->delete($recipe->image);
+            }
+            $data['image'] = $request->file('image')->store('recipes', 'public');
+        } else {
+            unset($data['image']);
+        }
+
         DB::transaction(function () use ($data, $recipe, $usda) {
             $recipe->update(collect($data)->except('ingredients')->all());
             $recipe->ingredients()->delete();
@@ -99,11 +113,30 @@ class AdminRecipeController extends Controller
     {
         $data = $request->validate(['query' => ['required', 'string', 'min:2', 'max:255']]);
 
+        if (! filled(config('services.usda.key'))) {
+            return response()->json([
+                'message' => 'USDA nutrition service is not configured. Add USDA_API_KEY to the backend .env file.',
+            ], 503);
+        }
+
         return response()->json(['foods' => $usda->normalizedSearch($data['query'], 8)]);
     }
 
     private function validated(Request $request, ?Recipe $recipe = null): array
     {
+        $uploadedImage = $request->file('image');
+        if ($uploadedImage && $uploadedImage->getError() !== UPLOAD_ERR_OK) {
+            $message = match ($uploadedImage->getError()) {
+                UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE => 'The image is too large. Choose an image no larger than 5 MB.',
+                UPLOAD_ERR_PARTIAL => 'The image upload was interrupted. Please try again.',
+                UPLOAD_ERR_NO_TMP_DIR => 'The server is missing its temporary upload folder.',
+                UPLOAD_ERR_CANT_WRITE => 'The server could not save the uploaded image.',
+                default => 'The image could not be uploaded. Please choose another file.',
+            };
+
+            throw ValidationException::withMessages(['image' => [$message]]);
+        }
+
         $ingredients = collect($request->input('ingredients', []))
             ->filter(fn ($ingredient) => filled($ingredient['name'] ?? null))
             ->values()
@@ -121,7 +154,9 @@ class AdminRecipeController extends Controller
             'servings' => ['nullable', 'integer', 'min:1'],
             'meal_type' => ['nullable', 'string', 'max:255'],
             'difficulty' => ['nullable', 'string', 'max:255'],
-            'image' => ['nullable', 'url', 'max:2048', 'required_with:image_source_url,image_attribution'],
+            'image' => $request->hasFile('image')
+                ? ['image', 'mimes:jpeg,jpg,png,webp', 'max:5120']
+                : ['nullable', 'url', 'max:2048'],
             'image_source_url' => ['nullable', 'url', 'max:2048', 'required_with:image_attribution'],
             'image_attribution' => ['nullable', 'string', 'max:500', 'required_with:image_source_url'],
             'calories' => ['nullable', 'numeric', 'min:0'],

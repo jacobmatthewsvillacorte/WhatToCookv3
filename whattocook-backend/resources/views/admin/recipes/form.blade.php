@@ -5,7 +5,7 @@
     }
 @endphp
 
-<form class="card" method="POST" action="{{ $action }}">
+<form class="card" method="POST" action="{{ $action }}" enctype="multipart/form-data">
     @csrf
     @if ($method !== 'POST')
         @method($method)
@@ -58,9 +58,12 @@
             @error('servings') <p class="error-text">{{ $message }}</p> @enderror
         </div>
         <div class="field">
-            <label for="image">Image URL</label>
-            <input id="image" name="image" type="url" value="{{ old('image', $recipe->image) }}" placeholder="https://example.com/recipe.jpg">
-            <p class="help">Use an image you own or have permission to use.</p>
+            <label for="image">Recipe image</label>
+            <input id="image" name="image" type="file" accept="image/jpeg,image/png,image/webp" data-recipe-image>
+            <p class="help">Upload a JPEG, PNG, or WebP image up to 5 MB. Leave empty to keep the current image.</p>
+            @if ($recipe->image)
+                <p class="help">Current image: {{ filter_var($recipe->image, FILTER_VALIDATE_URL) ? $recipe->image : asset('storage/'.$recipe->image) }}</p>
+            @endif
             @error('image') <p class="error-text">{{ $message }}</p> @enderror
         </div>
         <div class="field">
@@ -131,9 +134,24 @@
                     @error("ingredients.$index.nutrition_grams") <p class="error-text">{{ $message }}</p> @enderror
                 </div>
                 <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;">
-                    <label style="display:flex; align-items:center; gap:6px; margin:0; font-weight:500;"><input type="hidden" name="ingredients[{{ $index }}][is_substitute]" value="0"><input type="checkbox" name="ingredients[{{ $index }}][is_substitute]" value="1" @checked((bool) ($ingredient['is_substitute'] ?? false)) style="width:auto;"> Substitute</label>
+                    <input type="hidden" name="ingredients[{{ $index }}][is_substitute]" value="{{ (int) ($ingredient['is_substitute'] ?? false) }}">
+                    @if (!($ingredient['is_substitute'] ?? false))
+                        <button class="secondary" type="button" data-toggle-alternatives>Add alternative</button>
+                    @endif
                     <button class="danger" type="button" data-remove-ingredient>Remove</button>
                 </div>
+                @if (!($ingredient['is_substitute'] ?? false))
+                    <div class="field full" data-alternatives>
+                        <label>Alternative ingredients</label>
+                        <div data-alternative-list class="help" aria-live="polite"></div>
+                        <div data-alternative-form hidden style="margin-top:8px; display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;">
+                            <div><label>Ingredient</label><input data-alternative-name placeholder="e.g. Tofu"></div>
+                            <div><label>Quantity</label><input data-alternative-quantity placeholder="Same"></div>
+                            <div><label>Unit</label><input data-alternative-unit placeholder="Same"></div>
+                            <button class="secondary" type="button" data-add-alternative>Add ingredient</button>
+                        </div>
+                    </div>
+                @endif
             </div>
         @endforeach
     </div>
@@ -151,6 +169,7 @@
             </div>
         @endforeach
     </div>
+    <p class="help">USDA-calculated calories per serving: <strong>{{ old('calories', $recipe->calories) !== null && old('calories', $recipe->calories) !== '' ? number_format((float) old('calories', $recipe->calories), 2) . ' kcal' : 'Save the recipe after linking USDA food records to calculate this value.' }}</strong></p>
 
     <div class="actions">
         <button type="submit">{{ $submitLabel }}</button>
@@ -161,6 +180,22 @@
 @push('scripts')
 <script>
     (() => {
+        const imageInput = document.querySelector('[data-recipe-image]');
+        if (imageInput) {
+            imageInput.addEventListener('change', () => {
+                const file = imageInput.files[0];
+                if (!file) return;
+                const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+                if (!allowed.includes(file.type)) {
+                    imageInput.value = '';
+                    alert('Choose a JPEG, PNG, or WebP image. HEIC and GIF files are not supported.');
+                } else if (file.size > 5 * 1024 * 1024) {
+                    imageInput.value = '';
+                    alert('Choose an image no larger than 5 MB.');
+                }
+            });
+        }
+
         const rows = document.getElementById('ingredientRows');
         const addButton = document.getElementById('addIngredient');
         let nextIndex = {{ count($formIngredients) }};
@@ -173,8 +208,52 @@
                 <div class="field"><label>USDA food record</label><input data-nutrition-query placeholder="Search USDA food"><button class="secondary" type="button" data-search-nutrition>Search USDA</button><div data-nutrition-results class="help" aria-live="polite"></div></div>
                 <div class="field"><label>USDA FDC ID</label><input data-fdc-id name="ingredients[${index}][nutrition_fdc_id]" type="number" min="1" placeholder="Select a search result"></div>
                 <div class="field"><label>Ingredient weight (g)</label><input name="ingredients[${index}][nutrition_grams]" type="number" min="0.001" step="0.001" placeholder="e.g. 500"><p class="help">Use the actual edible weight for this recipe.</p></div>
-                <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;"><label style="display:flex; align-items:center; gap:6px; margin:0; font-weight:500;"><input type="hidden" name="ingredients[${index}][is_substitute]" value="0"><input type="checkbox" name="ingredients[${index}][is_substitute]" value="1" style="width:auto;"> Substitute</label><button class="danger" type="button" data-remove-ingredient>Remove</button></div>
+                <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;"><input type="hidden" name="ingredients[${index}][is_substitute]" value="0"><button class="secondary" type="button" data-toggle-alternatives>Add alternative</button><button class="danger" type="button" data-remove-ingredient>Remove</button></div>
+                <div class="field full" data-alternatives><label>Alternative ingredients</label><div data-alternative-list class="help" aria-live="polite"></div><div data-alternative-form hidden style="margin-top:8px; display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;"><div><label>Ingredient</label><input data-alternative-name placeholder="e.g. Tofu"></div><div><label>Quantity</label><input data-alternative-quantity placeholder="Same"></div><div><label>Unit</label><input data-alternative-unit placeholder="Same"></div><button class="secondary" type="button" data-add-alternative>Add ingredient</button></div></div>
             </div>`;
+
+        const addAlternative = (row, name, quantity = '', unit = '', fdcId = '', grams = '') => {
+            const index = nextIndex++;
+            const list = row.querySelector('[data-alternative-list]');
+            const item = document.createElement('div');
+            item.className = 'alternative-item';
+            item.style = 'display:flex; align-items:center; gap:8px; margin-top:6px;';
+            const label = document.createElement('strong');
+            label.textContent = name;
+            const details = document.createElement('span');
+            details.textContent = `${quantity || 'same'} ${unit || ''}`;
+            const remove = document.createElement('button');
+            remove.type = 'button'; remove.className = 'danger'; remove.textContent = 'Remove'; remove.dataset.removeAlternative = '';
+            item.append(label, details, remove);
+            [['name', name], ['quantity', quantity], ['unit', unit], ['nutrition_fdc_id', fdcId], ['nutrition_grams', grams], ['is_substitute', '1']].forEach(([field, value]) => {
+                if (value === '' && (field === 'nutrition_fdc_id' || field === 'nutrition_grams')) return;
+                const input = document.createElement('input');
+                input.type = 'hidden'; input.name = `ingredients[${index}][${field}]`; input.value = value;
+                item.appendChild(input);
+            });
+            list.appendChild(item);
+        };
+
+        const groupSavedAlternatives = () => {
+            let mainRow = null;
+            [...rows.querySelectorAll('[data-ingredient-row]')].forEach((row) => {
+                const substitute = row.querySelector('input[name$="[is_substitute]"]')?.value === '1';
+                if (!substitute) {
+                    mainRow = row;
+                    return;
+                }
+                if (!mainRow) return;
+                const name = row.querySelector('input[name$="[name]"]').value;
+                const quantity = row.querySelector('input[name$="[quantity]"]').value;
+                const unit = row.querySelector('input[name$="[unit]"]').value;
+                const fdcId = row.querySelector('input[name$="[nutrition_fdc_id]"]')?.value || '';
+                const grams = row.querySelector('input[name$="[nutrition_grams]"]')?.value || '';
+                addAlternative(mainRow, name, quantity, unit, fdcId, grams);
+                row.remove();
+            });
+        };
+
+        groupSavedAlternatives();
 
         addButton.addEventListener('click', () => {
             rows.insertAdjacentHTML('beforeend', rowMarkup(nextIndex++));
@@ -182,6 +261,30 @@
         });
 
         rows.addEventListener('click', (event) => {
+            const toggleButton = event.target.closest('[data-toggle-alternatives]');
+            if (toggleButton) {
+                const row = toggleButton.closest('[data-ingredient-row]');
+                const form = row.querySelector('[data-alternative-form]');
+                form.hidden = !form.hidden;
+                if (!form.hidden) form.querySelector('[data-alternative-name]').focus();
+                return;
+            }
+            const addAlternativeButton = event.target.closest('[data-add-alternative]');
+            if (addAlternativeButton) {
+                const row = addAlternativeButton.closest('[data-ingredient-row]');
+                const form = row.querySelector('[data-alternative-form]');
+                const nameInput = form.querySelector('[data-alternative-name]');
+                const name = nameInput.value.trim();
+                if (name.length < 2) { nameInput.focus(); return; }
+                addAlternative(row, name, form.querySelector('[data-alternative-quantity]').value.trim(), form.querySelector('[data-alternative-unit]').value.trim());
+                form.querySelectorAll('input').forEach((input) => { input.value = ''; });
+                form.hidden = true;
+                return;
+            }
+            if (event.target.closest('[data-remove-alternative]')) {
+                event.target.closest('.alternative-item').remove();
+                return;
+            }
             const searchButton = event.target.closest('[data-search-nutrition]');
             if (searchButton) {
                 const row = searchButton.closest('[data-ingredient-row]');
@@ -191,8 +294,12 @@
                 results.textContent = 'Searching USDA…';
                 fetch(`{{ route('admin.nutrition.search') }}?query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } })
                     .then(async response => {
-                        if (!response.ok) throw new Error((await response.json()).message || 'USDA search failed.');
-                        return response.json();
+                        const contentType = response.headers.get('content-type') || '';
+                        const payload = contentType.includes('application/json')
+                            ? await response.json()
+                            : { message: 'The server returned an unexpected response.' };
+                        if (!response.ok) throw new Error(payload.message || 'USDA search failed.');
+                        return payload;
                     })
                     .then(({ foods }) => {
                         if (!foods.length) { results.textContent = 'No USDA results found. Try a simpler ingredient name.'; return; }
@@ -202,7 +309,14 @@
                             button.textContent = `${food.description} (FDC ${food.fdc_id})`;
                             button.addEventListener('click', () => {
                                 row.querySelector('[data-fdc-id]').value = food.fdc_id;
-                                results.textContent = `Selected: ${food.description}.`;
+                                const weightInput = row.querySelector('input[name$="[nutrition_grams]"]');
+                                const servingUnit = String(food.serving_size_unit || '').toLowerCase();
+                                const servingInGrams = servingUnit === 'g' || servingUnit === 'gram' || servingUnit === 'grams';
+                                const weight = servingInGrams && Number(food.serving_size) > 0 ? Number(food.serving_size) : 100;
+                                weightInput.value = weight;
+                                results.textContent = servingInGrams && Number(food.serving_size) > 0
+                                    ? `Selected: ${food.description}. Weight set to ${weight} g from USDA serving size.`
+                                    : `Selected: ${food.description}. Weight set to 100 g, the USDA nutrition basis.`;
                             });
                             return button;
                         }));

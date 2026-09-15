@@ -51,6 +51,8 @@ class UsdaFoodDataService
             'description' => $food['description'] ?? null,
             'data_type' => $food['dataType'] ?? null,
             'brand_owner' => $food['brandOwner'] ?? null,
+            'serving_size' => isset($food['servingSize']) && is_numeric($food['servingSize']) ? (float) $food['servingSize'] : null,
+            'serving_size_unit' => $food['servingSizeUnit'] ?? null,
             'nutrients_per_100g' => $this->normalizeNutrients($food['foodNutrients'] ?? []),
         ])->values()->all();
     }
@@ -64,7 +66,7 @@ class UsdaFoodDataService
             $id = $item['nutrient']['id'] ?? $item['nutrientId'] ?? null;
             $value = $item['amount'] ?? $item['value'] ?? 0;
             $key = match (true) {
-                $id === 1008 || str_contains($name, 'energy') => 'calories',
+                $id === 1008 || ($id !== 1062 && str_contains($name, 'energy') && ! str_contains($name, 'kj') && ! str_contains($name, 'kilojoule')) => 'calories',
                 $id === 1003 || $name === 'protein' => 'protein',
                 $id === 1005 || str_contains($name, 'carbohydrate') => 'carbs',
                 $id === 1004 || str_contains($name, 'total lipid') => 'fat',

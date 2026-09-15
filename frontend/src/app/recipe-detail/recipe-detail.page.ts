@@ -20,7 +20,7 @@ export class RecipeDetailPage {
   get totalTime(): number { return (this.recipe?.prep_time || 0) + (this.recipe?.cook_time || 0); }
   unknownNutrientNames(): string[] { return Object.keys(this.nutrition?.unknown_nutrients || {}); }
   unavailableReason(reason: string): string { return reason === 'nutrition_food_not_linked' ? 'No food record linked' : 'Quantity cannot be converted to grams'; }
-  recipeImage(): string { return this.recipe?.image || 'assets/shapes.svg'; }
+  recipeImage(): string { return this.recipe?.image_url || this.recipe?.image || 'assets/shapes.svg'; }
   useFallbackImage(event: Event): void { (event.target as HTMLImageElement).src = 'assets/shapes.svg'; }
   toggleFavorite(): void { if (!this.recipe) return; (this.favorite ? this.api.unfavoriteRecipe(this.recipe.id) : this.api.favoriteRecipe(this.recipe.id)).subscribe({ next: () => this.favorite = !this.favorite, error: () => this.message = 'Could not update favorites.' }); }
   cookNow(): void {

@@ -106,7 +106,7 @@ export class DashboardPage {
     return `Use in ${days} days`;
   }
 
-  recipeImage(item: Recommendation): string { return item.recipe.image || 'assets/shapes.svg'; }
+  recipeImage(item: Recommendation): string { return item.recipe.image_url || item.recipe.image || 'assets/shapes.svg'; }
   useFallbackImage(event: Event): void { (event.target as HTMLImageElement).src = 'assets/shapes.svg'; }
   async cookRecommendation(event: Event, item: Recommendation): Promise<void> {
     event.preventDefault();
