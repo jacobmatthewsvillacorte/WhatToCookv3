@@ -11,6 +11,8 @@
         .topbar { background: var(--ink); color: #fff; min-height: 64px; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px max(20px, calc((100vw - 1160px) / 2)); }
         .brand { color: #fff; text-decoration: none; font-size: 18px; font-weight: 800; letter-spacing: -.02em; }
         .brand small { color: #bcd4c3; font-size: 12px; font-weight: 500; margin-left: 8px; }
+        .topbar-nav { display: flex; align-items: center; gap: 10px; margin-left: auto; margin-right: 12px; }
+        .topbar-nav a { color: #d9eee0; text-decoration: none; font-size: 14px; font-weight: 600; }
         .topbar-actions { display: flex; gap: 12px; align-items: center; font-size: 14px; }
         .admin-name { color: #d9eee0; }
         .container { width: min(1160px, calc(100% - 32px)); margin: 32px auto 56px; }
@@ -60,6 +62,10 @@
 <body>
     <header class="topbar">
         <a class="brand" href="{{ route('admin.recipes.index') }}">WhatToCook <small>Recipe Admin</small></a>
+        <nav class="topbar-nav" aria-label="Admin navigation">
+            <a href="{{ route('admin.recipes.index') }}">Recipes</a>
+            <a href="{{ route('admin.meal-plans.index') }}">Meal plans</a>
+        </nav>
         <div class="topbar-actions">
             <span class="admin-name">{{ auth()->user()->name }}</span>
             <form method="POST" action="{{ route('admin.logout') }}">

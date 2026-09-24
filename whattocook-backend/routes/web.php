@@ -16,6 +16,7 @@ Route::middleware('guest')->group(function () {
 Route::middleware(['auth', 'admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::redirect('/', '/admin/recipes')->name('home');
     Route::get('/nutrition/search', [AdminRecipeController::class, 'nutritionSearch'])->name('nutrition.search');
+    Route::get('/meal-plans', [AdminRecipeController::class, 'mealPlansIndex'])->name('meal-plans.index');
     Route::resource('recipes', AdminRecipeController::class)->except('show');
     Route::post('/logout', [AdminAuthController::class, 'destroy'])->name('logout');
 });

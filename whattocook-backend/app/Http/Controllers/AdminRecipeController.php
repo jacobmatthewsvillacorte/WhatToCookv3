@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\MealPlan;
 use App\Models\Recipe;
 use App\Services\IngredientCatalogService;
 use App\Services\RecipeNutritionService;
@@ -31,6 +32,25 @@ class AdminRecipeController extends Controller
             ->withQueryString();
 
         return view('admin.recipes.index', compact('recipes', 'search'));
+    }
+
+    public function mealPlansIndex(Request $request): View
+    {
+        $search = trim((string) $request->query('q', ''));
+
+        $mealPlans = MealPlan::query()
+            ->with(['recipe', 'family', 'user'])
+            ->when($search !== '', fn ($query) => $query->where(function ($mealPlans) use ($search) {
+                $mealPlans->where('meal_type', 'like', "%{$search}%")
+                    ->orWhere('status', 'like', "%{$search}%")
+                    ->orWhere('planned_date', 'like', "%{$search}%")
+                    ->orWhereHas('recipe', fn ($query) => $query->where('name', 'like', "%{$search}%"));
+            }))
+            ->orderByDesc('planned_date')
+            ->paginate(15)
+            ->withQueryString();
+
+        return view('admin.meal-plans.index', compact('mealPlans', 'search'));
     }
 
     public function create(): View
