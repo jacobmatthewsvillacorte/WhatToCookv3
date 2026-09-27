@@ -56,6 +56,7 @@ See [SETUP_GUIDE.md](SETUP_GUIDE.md), [TESTING_GUIDE.md](TESTING_GUIDE.md), [ERD
 - [Testing guide](TESTING_GUIDE.md) — automated, Android, and panel verification.
 - [Cooking mode specification](COOKING_MODE_SPEC.md) — current guided-cooking route, client behavior, and API contract.
 - [System logic map](SYSTEM_LOGIC_MAP.md) — active-context, matching, planning, and completion rules.
+- [Nutrition code-reading study guide](NUTRITION_CODE_READING_STUDY_GUIDE.md) — trace recipe and daily-plan nutrition through forms, routes, services, models, and tests.
 - [Product roadmap](PRODUCT_ROADMAP.md) and [implementation plan](IMPLEMENTATION_PLAN.md) — delivered scope and phased direction.
 - [Functionality details](FUNCTIONALITY_DETAILS.md) and [must-haves](MustToHaves.md) — project requirements and feature intent.
 - [ERD](ERD.md) — schema reference and visual diagram.

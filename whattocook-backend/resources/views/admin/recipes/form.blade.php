@@ -141,16 +141,8 @@
         <button class="secondary" type="button" id="addIngredient">+ Add another ingredient</button>
     </div>
 
-    <h2 style="margin-top:30px;">Optional nutrition per serving</h2>
-    <div class="field-grid four">
-        @foreach (['calories' => 'Calories (kcal)', 'protein' => 'Protein (g)', 'carbs' => 'Carbs (g)', 'fat' => 'Fat (g)'] as $field => $label)
-            <div class="field">
-                <label for="{{ $field }}">{{ $label }}</label>
-                <input id="{{ $field }}" name="{{ $field }}" type="number" min="0" step="0.01" value="{{ old($field, $recipe->$field) }}">
-                @error($field) <p class="error-text">{{ $message }}</p> @enderror
-            </div>
-        @endforeach
-    </div>
+    <h2 style="margin-top:30px;">Nutrition per serving</h2>
+    <p class="help">Calculated when you save from linked USDA food records, ingredient weights, and recipe servings. Link each ingredient and enter its weight in grams for a complete estimate.</p>
 
     <div class="actions">
         <button type="submit">{{ $submitLabel }}</button>
@@ -191,8 +183,11 @@
                 results.textContent = 'Searching USDA…';
                 fetch(`{{ route('admin.nutrition.search') }}?query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } })
                     .then(async response => {
-                        if (!response.ok) throw new Error((await response.json()).message || 'USDA search failed.');
-                        return response.json();
+                        const isJson = response.headers.get('content-type')?.includes('application/json');
+                        const payload = isJson ? await response.json() : null;
+                        if (!response.ok) throw new Error(payload?.message || (response.status === 503 ? 'USDA search is unavailable. Check the backend USDA_API_KEY configuration.' : `USDA search failed (HTTP ${response.status}).`));
+                        if (!payload) throw new Error('USDA search returned an unexpected response.');
+                        return payload;
                     })
                     .then(({ foods }) => {
                         if (!foods.length) { results.textContent = 'No USDA results found. Try a simpler ingredient name.'; return; }
