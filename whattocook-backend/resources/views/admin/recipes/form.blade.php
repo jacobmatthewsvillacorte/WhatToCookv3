@@ -136,7 +136,7 @@
                 <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;">
                     <input type="hidden" name="ingredients[{{ $index }}][is_substitute]" value="{{ (int) ($ingredient['is_substitute'] ?? false) }}">
                     @if (!($ingredient['is_substitute'] ?? false))
-                        <button class="secondary" type="button" data-toggle-alternatives>Add alternative</button>
+                        <button class="secondary" type="button" data-toggle-alternatives>{{ (($ingredient['is_substitute'] ?? false) || (($ingredient['name'] ?? '') !== '')) ? 'Hide alternative' : 'Show alternative' }}</button>
                     @endif
                     <button class="danger" type="button" data-remove-ingredient>Remove</button>
                 </div>
@@ -144,11 +144,12 @@
                     <div class="field full" data-alternatives>
                         <label>Alternative ingredients</label>
                         <div data-alternative-list class="help" aria-live="polite"></div>
-                        <div data-alternative-form hidden style="margin-top:8px; display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;">
+                        <div data-alternative-form hidden style="margin-top:8px; display:grid; grid-template-columns:2fr 1fr 1fr auto auto; gap:8px; align-items:end;">
                             <div><label>Ingredient</label><input data-alternative-name placeholder="e.g. Tofu"></div>
                             <div><label>Quantity</label><input data-alternative-quantity placeholder="Same"></div>
                             <div><label>Unit</label><input data-alternative-unit placeholder="Same"></div>
                             <button class="secondary" type="button" data-add-alternative>Add ingredient</button>
+                            <button class="secondary" type="button" data-hide-alternative-form>Hide</button>
                         </div>
                     </div>
                 @endif
@@ -164,12 +165,17 @@
         @foreach (['calories' => 'Calories (kcal)', 'protein' => 'Protein (g)', 'carbs' => 'Carbs (g)', 'fat' => 'Fat (g)'] as $field => $label)
             <div class="field">
                 <label for="{{ $field }}">{{ $label }}</label>
-                <input id="{{ $field }}" name="{{ $field }}" type="number" min="0" step="0.01" value="{{ old($field, $recipe->$field) }}">
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <input id="{{ $field }}" name="{{ $field }}" type="number" min="0" step="0.01" value="{{ old($field, $calculatedNutrition[$field] ?? $recipe->$field) }}" style="flex:1;">
+                    @if (isset($calculatedNutrition[$field]))
+                        <span class="badge" style="font-size:11px; padding:3px 7px; border-radius:999px; background:rgba(16,185,129,0.12); color:#7ce5b5; border:1px solid rgba(16,185,129,0.4); white-space:nowrap;">Auto</span>
+                    @endif
+                </div>
                 @error($field) <p class="error-text">{{ $message }}</p> @enderror
             </div>
         @endforeach
     </div>
-    <p class="help">USDA-calculated calories per serving: <strong>{{ old('calories', $recipe->calories) !== null && old('calories', $recipe->calories) !== '' ? number_format((float) old('calories', $recipe->calories), 2) . ' kcal' : 'Save the recipe after linking USDA food records to calculate this value.' }}</strong></p>
+    <p class="help">USDA-calculated calories per serving: <strong>{{ old('calories', $calculatedNutrition['calories'] ?? $recipe->calories) !== null && old('calories', $calculatedNutrition['calories'] ?? $recipe->calories) !== '' ? number_format((float) old('calories', $calculatedNutrition['calories'] ?? $recipe->calories), 2) . ' kcal' : 'Save the recipe after linking USDA food records to calculate this value.' }}</strong></p>
 
     <div class="actions">
         <button type="submit">{{ $submitLabel }}</button>
@@ -198,7 +204,43 @@
 
         const rows = document.getElementById('ingredientRows');
         const addButton = document.getElementById('addIngredient');
+        const servingsInput = document.getElementById('servings');
         let nextIndex = {{ count($formIngredients) }};
+
+        const round2 = (value) => Number.isFinite(value) ? Number(value.toFixed(2)) : 0;
+
+        const syncOptionalNutritionFields = () => {
+            const ingredientRows = [...rows.querySelectorAll('[data-ingredient-row]')];
+            const totals = { calories: 0, protein: 0, carbs: 0, fat: 0 };
+            let hasUsdaCoverage = false;
+
+            ingredientRows.forEach((row) => {
+                const fdcId = row.querySelector('[data-fdc-id]')?.value;
+                const gramsInput = row.querySelector('input[name$="[nutrition_grams]"]');
+                const grams = Number(gramsInput?.value || 0);
+                const nutrients = row.dataset.nutrients ? JSON.parse(row.dataset.nutrients) : null;
+
+                if (!fdcId || !nutrients || !(grams > 0)) {
+                    return;
+                }
+
+                hasUsdaCoverage = true;
+                ['calories', 'protein', 'carbs', 'fat'].forEach((nutrient) => {
+                    totals[nutrient] += ((Number(nutrients[nutrient] || 0)) * grams) / 100;
+                });
+            });
+
+            if (!hasUsdaCoverage) {
+                return;
+            }
+
+            const servings = Math.max(1, Number(servingsInput?.value || 1));
+            ['calories', 'protein', 'carbs', 'fat'].forEach((nutrient) => {
+                const input = document.getElementById(nutrient);
+                if (!input) return;
+                input.value = round2(totals[nutrient] / servings);
+            });
+        };
 
         const rowMarkup = (index) => `
             <div class="ingredient-row field-grid four" data-ingredient-row style="margin-top:12px; padding:14px; border:1px solid var(--line); border-radius:10px;">
@@ -208,8 +250,8 @@
                 <div class="field"><label>USDA food record</label><input data-nutrition-query placeholder="Search USDA food"><button class="secondary" type="button" data-search-nutrition>Search USDA</button><div data-nutrition-results class="help" aria-live="polite"></div></div>
                 <div class="field"><label>USDA FDC ID</label><input data-fdc-id name="ingredients[${index}][nutrition_fdc_id]" type="number" min="1" placeholder="Select a search result"></div>
                 <div class="field"><label>Ingredient weight (g)</label><input name="ingredients[${index}][nutrition_grams]" type="number" min="0.001" step="0.001" placeholder="e.g. 500"><p class="help">Use the actual edible weight for this recipe.</p></div>
-                <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;"><input type="hidden" name="ingredients[${index}][is_substitute]" value="0"><button class="secondary" type="button" data-toggle-alternatives>Add alternative</button><button class="danger" type="button" data-remove-ingredient>Remove</button></div>
-                <div class="field full" data-alternatives><label>Alternative ingredients</label><div data-alternative-list class="help" aria-live="polite"></div><div data-alternative-form hidden style="margin-top:8px; display:grid; grid-template-columns:2fr 1fr 1fr auto; gap:8px; align-items:end;"><div><label>Ingredient</label><input data-alternative-name placeholder="e.g. Tofu"></div><div><label>Quantity</label><input data-alternative-quantity placeholder="Same"></div><div><label>Unit</label><input data-alternative-unit placeholder="Same"></div><button class="secondary" type="button" data-add-alternative>Add ingredient</button></div></div>
+                <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;"><input type="hidden" name="ingredients[${index}][is_substitute]" value="0"><button class="secondary" type="button" data-toggle-alternatives>Show alternative</button><button class="danger" type="button" data-remove-ingredient>Remove</button></div>
+                <div class="field full" data-alternatives><label>Alternative ingredients</label><div data-alternative-list class="help" aria-live="polite"></div><div data-alternative-form hidden style="margin-top:8px; display:grid; grid-template-columns:2fr 1fr 1fr auto auto; gap:8px; align-items:end;"><div><label>Ingredient</label><input data-alternative-name placeholder="e.g. Tofu"></div><div><label>Quantity</label><input data-alternative-quantity placeholder="Same"></div><div><label>Unit</label><input data-alternative-unit placeholder="Same"></div><button class="secondary" type="button" data-add-alternative>Add ingredient</button><button class="secondary" type="button" data-hide-alternative-form>Hide</button></div></div>
             </div>`;
 
         const addAlternative = (row, name, quantity = '', unit = '', fdcId = '', grams = '') => {
@@ -253,20 +295,53 @@
             });
         };
 
+        const updateAlternativeVisibility = (row, visible) => {
+            const section = row.querySelector('[data-alternatives]');
+            const form = row.querySelector('[data-alternative-form]');
+            const button = row.querySelector('[data-toggle-alternatives]');
+            if (!section || !button) return;
+
+            section.hidden = !visible;
+            if (form) form.hidden = true;
+            button.textContent = visible ? 'Hide alternative' : 'Show alternative';
+        };
+
         groupSavedAlternatives();
+
+        [...rows.querySelectorAll('[data-ingredient-row]')].forEach((row) => {
+            const section = row.querySelector('[data-alternatives]');
+            const hasItems = section && section.querySelectorAll('.alternative-item').length > 0;
+            updateAlternativeVisibility(row, hasItems);
+        });
 
         addButton.addEventListener('click', () => {
             rows.insertAdjacentHTML('beforeend', rowMarkup(nextIndex++));
-            rows.lastElementChild.querySelector('input').focus();
+            const newRow = rows.lastElementChild;
+            updateAlternativeVisibility(newRow, false);
+            newRow.querySelector('input').focus();
         });
+
+        rows.addEventListener('input', (event) => {
+            const row = event.target.closest('[data-ingredient-row]');
+            if (!row) return;
+            if (event.target.matches('[data-fdc-id]') || event.target.matches('input[name$="[nutrition_grams]"]')) {
+                syncOptionalNutritionFields();
+            }
+        });
+
+        servingsInput?.addEventListener('input', syncOptionalNutritionFields);
 
         rows.addEventListener('click', (event) => {
             const toggleButton = event.target.closest('[data-toggle-alternatives]');
             if (toggleButton) {
                 const row = toggleButton.closest('[data-ingredient-row]');
-                const form = row.querySelector('[data-alternative-form]');
-                form.hidden = !form.hidden;
-                if (!form.hidden) form.querySelector('[data-alternative-name]').focus();
+                const section = row.querySelector('[data-alternatives]');
+                const nextVisible = section.hidden;
+                updateAlternativeVisibility(row, nextVisible);
+                if (nextVisible) {
+                    const form = row.querySelector('[data-alternative-form]');
+                    form.hidden = true;
+                }
                 return;
             }
             const addAlternativeButton = event.target.closest('[data-add-alternative]');
@@ -279,6 +354,13 @@
                 addAlternative(row, name, form.querySelector('[data-alternative-quantity]').value.trim(), form.querySelector('[data-alternative-unit]').value.trim());
                 form.querySelectorAll('input').forEach((input) => { input.value = ''; });
                 form.hidden = true;
+                updateAlternativeVisibility(row, true);
+                return;
+            }
+            const hideAlternativeButton = event.target.closest('[data-hide-alternative-form]');
+            if (hideAlternativeButton) {
+                const row = hideAlternativeButton.closest('[data-ingredient-row]');
+                updateAlternativeVisibility(row, false);
                 return;
             }
             if (event.target.closest('[data-remove-alternative]')) {
@@ -314,9 +396,11 @@
                                 const servingInGrams = servingUnit === 'g' || servingUnit === 'gram' || servingUnit === 'grams';
                                 const weight = servingInGrams && Number(food.serving_size) > 0 ? Number(food.serving_size) : 100;
                                 weightInput.value = weight;
+                                row.dataset.nutrients = JSON.stringify(food.nutrients_per_100g || {});
                                 results.textContent = servingInGrams && Number(food.serving_size) > 0
                                     ? `Selected: ${food.description}. Weight set to ${weight} g from USDA serving size.`
                                     : `Selected: ${food.description}. Weight set to 100 g, the USDA nutrition basis.`;
+                                syncOptionalNutritionFields();
                             });
                             return button;
                         }));

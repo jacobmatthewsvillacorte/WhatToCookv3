@@ -64,10 +64,14 @@ class AdminRecipeController extends Controller
             ->with('success', 'Recipe created. You can continue editing it below.');
     }
 
-    public function edit(Recipe $recipe): View
+    public function edit(Recipe $recipe, RecipeNutritionService $nutrition): View
     {
+        $recipe->load('ingredients.nutritionFood');
+        $calculatedNutrition = $nutrition->calculate($recipe)['per_serving'] ?? [];
+
         return view('admin.recipes.edit', [
-            'recipe' => $recipe->load('ingredients.nutritionFood'),
+            'recipe' => $recipe,
+            'calculatedNutrition' => $calculatedNutrition,
             'ingredients' => $recipe->ingredients
                 ->map(fn ($ingredient) => array_merge(
                     $ingredient->only(['name', 'quantity', 'unit', 'nutrition_grams', 'is_substitute']),
