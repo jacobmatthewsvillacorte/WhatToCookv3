@@ -139,6 +139,55 @@ class AdminRecipeManagementTest extends TestCase
             ->assertSessionHasErrors('ingredients.1.name');
     }
 
+    public function test_an_admin_can_view_stored_meal_plans(): void
+    {
+        $admin = $this->admin();
+        $family = \App\Models\Family::create([
+            'name' => 'The Smith Family',
+            'owner_id' => $admin->id,
+        ]);
+        $recipe = Recipe::create([
+            'name' => 'Meal plan recipe',
+            'instructions' => 'Cook it.',
+            'created_by' => $admin->id,
+        ]);
+        $recipe->ingredients()->create(['name' => 'rice']);
+
+        $personalMealPlan = \App\Models\MealPlan::create([
+            'user_id' => $admin->id,
+            'family_id' => null,
+            'recipe_id' => $recipe->id,
+            'planned_date' => '2026-09-25',
+            'meal_type' => 'dinner',
+            'status' => 'scheduled',
+            'servings' => 2,
+        ]);
+
+        $familyMealPlan = \App\Models\MealPlan::create([
+            'user_id' => $admin->id,
+            'family_id' => $family->id,
+            'recipe_id' => $recipe->id,
+            'planned_date' => '2026-09-26',
+            'meal_type' => 'lunch',
+            'status' => 'scheduled',
+            'servings' => 3,
+        ]);
+
+        $this->actingAs($admin)
+            ->get('/admin/meal-plans')
+            ->assertOk()
+            ->assertSee('Meal plans')
+            ->assertSee('Meal plan recipe')
+            ->assertSee('2026-09-25')
+            ->assertSee('2026-09-26')
+            ->assertSee('Scheduled')
+            ->assertSee($admin->name)
+            ->assertSee('The Smith Family');
+
+        $this->assertDatabaseHas('meal_plans', ['id' => $personalMealPlan->id, 'recipe_id' => $recipe->id]);
+        $this->assertDatabaseHas('meal_plans', ['id' => $familyMealPlan->id, 'family_id' => $family->id]);
+    }
+
     public function test_an_admin_can_search_usda_without_exposing_the_api_key_to_the_browser(): void
     {
         $admin = $this->admin();
