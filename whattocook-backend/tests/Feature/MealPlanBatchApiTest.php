@@ -205,6 +205,46 @@ class MealPlanBatchApiTest extends TestCase
         }
     }
 
+    public function test_avoid_leftovers_selects_different_recipes_for_each_meal_when_enough_safe_recipes_exist(): void
+    {
+        $user = User::factory()->create();
+        $recipes = collect([
+            $this->recipe($user, 'Breakfast Ulam', 'Egg', '1', 'pc'),
+            $this->recipe($user, 'Lunch Ulam', 'Chicken', '1', 'kg'),
+            $this->recipe($user, 'Dinner Ulam', 'Fish', '1', 'kg'),
+        ]);
+
+        $meals = $this->actingAs($user, 'sanctum')->postJson('/api/meal-plan-batches/generate', [
+            'start_date' => '2026-08-03', 'end_date' => '2026-08-03',
+            'meal_types' => ['breakfast', 'lunch', 'dinner'], 'servings' => 1,
+            'leftover_strategy' => 'avoid_leftovers',
+        ])->assertCreated()->json('meal_plans');
+
+        $this->assertSame($recipes->pluck('id')->sort()->values()->all(), collect($meals)->pluck('recipe_id')->sort()->values()->all());
+        $this->assertCount(3, collect($meals)->pluck('recipe_id')->unique());
+    }
+
+    public function test_avoid_leftovers_allows_repeats_when_there_are_fewer_safe_recipes_than_meal_slots(): void
+    {
+        $user = User::factory()->create();
+        $recipes = collect([
+            $this->recipe($user, 'First Ulam', 'Chicken', '1', 'kg'),
+            $this->recipe($user, 'Second Ulam', 'Fish', '1', 'kg'),
+        ]);
+
+        $meals = $this->actingAs($user, 'sanctum')->postJson('/api/meal-plan-batches/generate', [
+            'start_date' => '2026-08-03', 'end_date' => '2026-08-03',
+            'meal_types' => ['breakfast', 'lunch', 'dinner'], 'servings' => 1,
+            'leftover_strategy' => 'avoid_leftovers',
+        ])->assertCreated()->json('meal_plans');
+
+        $this->assertCount(3, $meals);
+        $this->assertSame(
+            $recipes->pluck('id')->sort()->values()->all(),
+            collect($meals)->pluck('recipe_id')->unique()->sort()->values()->all(),
+        );
+    }
+
     public function test_generated_plans_apply_vegan_taxonomy_without_mistaking_eggplant_for_egg(): void
     {
         $user = User::factory()->create();

@@ -61,10 +61,17 @@ class MealPlanBatchController extends Controller
                     throw ValidationException::withMessages(['recipes' => ["No safe recipes are available for {$dateKey} and its selected diners."]]);
                 }
                 $shared = null;
+                $usedToday = [];
                 foreach ($data['meal_types'] as $mealIndex => $mealType) {
                     // Reuse one ulam across a day's requested meals; rice/side remains an editable serving choice.
-                    $recipe = ($data['leftover_strategy'] ?? 'avoid_leftovers') === 'reuse_ulam' && $shared ? $shared : $recipes->first();
+                    $strategy = $data['leftover_strategy'] ?? 'avoid_leftovers';
+                    $recipe = $strategy === 'reuse_ulam' && $shared
+                        ? $shared
+                        : ($strategy === 'avoid_leftovers'
+                            ? ($recipes->first(fn (Recipe $candidate) => ! in_array($candidate->id, $usedToday, true)) ?? $recipes->first())
+                            : $recipes->first());
                     $shared ??= $recipe;
+                    $usedToday[] = $recipe->id;
                     $chosen[] = $recipe->id;
                     $why = $recipe->why_chosen;
                     if ($mealIndex > 0 && ($data['leftover_strategy'] ?? '') === 'reuse_ulam') $why[] = 'Reuses today\'s ulam to reduce cooking and food waste; serve with rice or a side.';
