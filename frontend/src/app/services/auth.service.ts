@@ -16,13 +16,23 @@ export class AuthService {
 
   constructor(private http: HttpClient, private router: Router, private householdContext: HouseholdContextService) {}
   private get baseUrl(): string {
-    return Capacitor.getPlatform() === 'android' && Capacitor.isNativePlatform()
+    return Capacitor.getPlatform() === 'android'
       ? environment.androidApiBaseUrl
       : environment.apiBaseUrl;
   }
 
   get isAuthenticated(): boolean { return !!localStorage.getItem(this.tokenKey); }
   get token(): string | null { return localStorage.getItem(this.tokenKey); }
+  getAuthErrorMessage(error: { status?: number; error?: { message?: string; errors?: Record<string, string[]> } }): string {
+    if (error.status === 0) {
+      return `Cannot reach the local backend at ${this.baseUrl}. Keep Laravel running and ensure the phone and computer use the same Wi-Fi.`;
+    }
+    const validationErrors = Object.values(error.error?.errors ?? {}).reduce(
+      (messages: string[], fieldMessages) => messages.concat(fieldMessages),
+      [],
+    );
+    return validationErrors[0] || error.error?.message || 'We could not complete the request. Please check your details and try again.';
+  }
   get user(): AppUser | null {
     const stored = localStorage.getItem(this.userKey);
     return stored ? JSON.parse(stored) as AppUser : null;

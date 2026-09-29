@@ -42,7 +42,7 @@ export interface RecipeReview { id: number; rating: number; review?: string | nu
 export class ApiService {
   constructor(private http: HttpClient) {}
   private get baseUrl(): string {
-    return Capacitor.getPlatform() === 'android' && Capacitor.isNativePlatform()
+    return Capacitor.getPlatform() === 'android'
       ? environment.androidApiBaseUrl
       : environment.apiBaseUrl;
   }

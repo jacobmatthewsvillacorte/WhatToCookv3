@@ -18,7 +18,7 @@ export class AuthPage {
       : this.auth.register(this.name, this.email, this.password, this.passwordConfirmation);
     request.subscribe({
       next: () => this.router.navigateByUrl(this.mode === 'register' ? '/onboarding' : '/tabs/dashboard', { replaceUrl: true }),
-      error: error => { this.error = error?.error?.message || 'We could not sign you in. Please check your details and try again.'; this.submitting = false; },
+      error: error => { this.error = this.auth.getAuthErrorMessage(error); this.submitting = false; },
     });
   }
 }

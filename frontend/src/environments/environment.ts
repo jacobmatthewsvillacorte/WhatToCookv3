@@ -4,9 +4,9 @@
 
 export const environment = {
   production: false,
-  // Matches Laravel's default `php artisan serve` development port.
+  // The phone and computer must be on the same Wi-Fi network for local Android testing.
   apiBaseUrl: 'http://127.0.0.1:8000/api',
-  androidApiBaseUrl: 'http://192.168.100.14:8000/api'
+  androidApiBaseUrl: 'http://192.168.254.135:8000/api'
 };
 /*
  * For easier debugging in development mode, you can import the following file
