@@ -97,7 +97,7 @@
 
     <div id="ingredientRows">
         @foreach ($formIngredients as $index => $ingredient)
-            <div class="ingredient-row field-grid four" data-ingredient-row style="margin-top:12px; padding:14px; border:1px solid var(--line); border-radius:10px;">
+            <div class="ingredient-row field-grid four" data-ingredient-row data-nutrition-per-100g='@json($ingredient["nutrition_per_100g"] ?? null)' style="margin-top:12px; padding:14px; border:1px solid var(--line); border-radius:10px;">
                 <div class="field">
                     <label>Ingredient *</label>
                     <input name="ingredients[{{ $index }}][name]" value="{{ $ingredient['name'] ?? '' }}" required placeholder="e.g. Chicken">
@@ -117,7 +117,7 @@
                     <label>USDA food record</label>
                     <input data-nutrition-query value="{{ $ingredient['name'] ?? '' }}" placeholder="Search USDA food">
                     <button class="secondary" type="button" data-search-nutrition>Search USDA</button>
-                    <div data-nutrition-results class="help" aria-live="polite"></div>
+                    <div data-nutrition-results class="nutrition-results" aria-live="polite">@if (!empty($ingredient['nutrition_fdc_id']))<p class="nutrition-selected">Saved USDA record: {{ $ingredient['nutrition_description'] ?: 'Food record' }} (FDC {{ $ingredient['nutrition_fdc_id'] }}).</p>@endif</div>
                 </div>
                 <div class="field">
                     <label>USDA FDC ID</label>
@@ -141,16 +141,15 @@
         <button class="secondary" type="button" id="addIngredient">+ Add another ingredient</button>
     </div>
 
-    <h2 style="margin-top:30px;">Optional nutrition per serving</h2>
-    <div class="field-grid four">
-        @foreach (['calories' => 'Calories (kcal)', 'protein' => 'Protein (g)', 'carbs' => 'Carbs (g)', 'fat' => 'Fat (g)'] as $field => $label)
-            <div class="field">
-                <label for="{{ $field }}">{{ $label }}</label>
-                <input id="{{ $field }}" name="{{ $field }}" type="number" min="0" step="0.01" value="{{ old($field, $recipe->$field) }}">
-                @error($field) <p class="error-text">{{ $message }}</p> @enderror
-            </div>
-        @endforeach
+    <h2 style="margin-top:30px;">Automatic nutrition preview</h2>
+    <p class="subheading nutrition-preview-copy">Values are calculated from the selected USDA food records and ingredient weights. Save the recipe to calculate and store the final nutrition.</p>
+    <div class="nutrition-preview" data-nutrition-preview>
+        <div><span>Calories</span><strong data-preview-value="calories">0</strong><small> kcal per serving</small></div>
+        <div><span>Protein</span><strong data-preview-value="protein">0</strong><small> g per serving</small></div>
+        <div><span>Carbs</span><strong data-preview-value="carbs">0</strong><small> g per serving</small></div>
+        <div><span>Fat</span><strong data-preview-value="fat">0</strong><small> g per serving</small></div>
     </div>
+    <p class="nutrition-preview-status" data-nutrition-preview-status>Choose a USDA record and enter its edible weight to preview nutrition.</p>
 
     <div class="actions">
         <button type="submit">{{ $submitLabel }}</button>
@@ -163,14 +162,44 @@
     (() => {
         const rows = document.getElementById('ingredientRows');
         const addButton = document.getElementById('addIngredient');
+        const preview = document.querySelector('[data-nutrition-preview]');
+        const previewStatus = document.querySelector('[data-nutrition-preview-status]');
+        const nutrientKeys = ['calories', 'protein', 'carbs', 'fat'];
         let nextIndex = {{ count($formIngredients) }};
 
+        rows.querySelectorAll('[data-nutrition-per-100g]').forEach(row => {
+            try { row._nutritionPer100g = JSON.parse(row.dataset.nutritionPer100g); } catch (_) { row._nutritionPer100g = null; }
+        });
+
+        const updateNutritionPreview = () => {
+            const totals = Object.fromEntries(nutrientKeys.map(key => [key, 0]));
+            let linkedIngredients = 0;
+            let weightedIngredients = 0;
+            rows.querySelectorAll('[data-ingredient-row]').forEach(row => {
+                const nutrients = row._nutritionPer100g;
+                const weight = Number(row.querySelector('input[name$="[nutrition_grams]"]')?.value);
+                if (!nutrients) return;
+                linkedIngredients++;
+                if (!Number.isFinite(weight) || weight <= 0) return;
+                weightedIngredients++;
+                nutrientKeys.forEach(key => { totals[key] += (Number(nutrients[key]) || 0) * weight / 100; });
+            });
+            const servings = Math.max(1, Number(document.getElementById('servings')?.value) || 1);
+            nutrientKeys.forEach(key => {
+                const value = Math.round(totals[key] / servings * 100) / 100;
+                preview.querySelector(`[data-preview-value="${key}"]`).textContent = value;
+            });
+            if (!linkedIngredients) previewStatus.textContent = 'Choose a USDA record and enter its edible weight to preview nutrition.';
+            else if (weightedIngredients < linkedIngredients) previewStatus.textContent = 'Enter a weight in grams for every selected USDA record.';
+            else previewStatus.textContent = 'Preview calculated from selected USDA records. The saved recipe uses the server-calculated result.';
+        };
+
         const rowMarkup = (index) => `
-            <div class="ingredient-row field-grid four" data-ingredient-row style="margin-top:12px; padding:14px; border:1px solid var(--line); border-radius:10px;">
+            <div class="ingredient-row field-grid four" data-ingredient-row data-nutrition-per-100g="" style="margin-top:12px; padding:14px; border:1px solid var(--line); border-radius:10px;">
                 <div class="field"><label>Ingredient *</label><input name="ingredients[${index}][name]" required placeholder="e.g. Chicken"></div>
                 <div class="field"><label>Quantity</label><input name="ingredients[${index}][quantity]" placeholder="e.g. 500"></div>
                 <div class="field"><label>Unit</label><input name="ingredients[${index}][unit]" placeholder="e.g. g, cup, pcs"></div>
-                <div class="field"><label>USDA food record</label><input data-nutrition-query placeholder="Search USDA food"><button class="secondary" type="button" data-search-nutrition>Search USDA</button><div data-nutrition-results class="help" aria-live="polite"></div></div>
+                <div class="field"><label>USDA food record</label><input data-nutrition-query placeholder="Search USDA food"><button class="secondary" type="button" data-search-nutrition>Search USDA</button><div data-nutrition-results class="nutrition-results" aria-live="polite"></div></div>
                 <div class="field"><label>USDA FDC ID</label><input data-fdc-id name="ingredients[${index}][nutrition_fdc_id]" type="number" min="1" placeholder="Select a search result"></div>
                 <div class="field"><label>Ingredient weight (g)</label><input name="ingredients[${index}][nutrition_grams]" type="number" min="0.001" step="0.001" placeholder="e.g. 500"><p class="help">Use the actual edible weight for this recipe.</p></div>
                 <div class="field" style="display:flex; align-items:end; gap:10px; padding-bottom:2px;"><label style="display:flex; align-items:center; gap:6px; margin:0; font-weight:500;"><input type="hidden" name="ingredients[${index}][is_substitute]" value="0"><input type="checkbox" name="ingredients[${index}][is_substitute]" value="1" style="width:auto;"> Substitute</label><button class="danger" type="button" data-remove-ingredient>Remove</button></div>
@@ -188,7 +217,7 @@
                 const query = row.querySelector('[data-nutrition-query]').value.trim();
                 const results = row.querySelector('[data-nutrition-results]');
                 if (query.length < 2) { results.textContent = 'Enter at least two characters to search USDA.'; return; }
-                results.textContent = 'Searching USDA…';
+                results.textContent = 'Searching USDA...';
                 fetch(`{{ route('admin.nutrition.search') }}?query=${encodeURIComponent(query)}`, { headers: { Accept: 'application/json' } })
                     .then(async response => {
                         if (!response.ok) throw new Error((await response.json()).message || 'USDA search failed.');
@@ -196,13 +225,31 @@
                     })
                     .then(({ foods }) => {
                         if (!foods.length) { results.textContent = 'No USDA results found. Try a simpler ingredient name.'; return; }
-                        results.replaceChildren(...foods.map(food => {
+                        const intro = document.createElement('p');
+                        intro.className = 'nutrition-results-intro';
+                        intro.textContent = 'Choose the record that best matches the ingredient state and brand in this recipe.';
+                        results.replaceChildren(intro, ...foods.map(food => {
                             const button = document.createElement('button');
-                            button.type = 'button'; button.className = 'secondary';
-                            button.textContent = `${food.description} (FDC ${food.fdc_id})`;
+                            button.type = 'button'; button.className = 'nutrition-result';
+                            const title = document.createElement('strong');
+                            title.textContent = food.description || 'Unnamed USDA food';
+                            const metadata = document.createElement('span');
+                            metadata.className = 'nutrition-result-meta';
+                            metadata.textContent = [food.data_type || 'USDA record', food.brand_owner || 'Generic / no brand listed', `FDC ${food.fdc_id}`].join(' | ');
+                            const nutrients = document.createElement('span');
+                            nutrients.className = 'nutrition-result-nutrients';
+                            const values = food.nutrients_per_100g || {};
+                            nutrients.textContent = `${values.calories ?? 0} kcal | ${values.protein ?? 0} g protein per 100 g`;
+                            button.append(title, metadata, nutrients);
                             button.addEventListener('click', () => {
                                 row.querySelector('[data-fdc-id]').value = food.fdc_id;
-                                results.textContent = `Selected: ${food.description}.`;
+                                row._nutritionPer100g = food.nutrients_per_100g || {};
+                                results.replaceChildren();
+                                const selected = document.createElement('p');
+                                selected.className = 'nutrition-selected';
+                                selected.textContent = `Selected: ${food.description} (FDC ${food.fdc_id}).`;
+                                results.append(selected);
+                                updateNutritionPreview();
                             });
                             return button;
                         }));
@@ -217,7 +264,14 @@
                 return;
             }
             event.target.closest('[data-ingredient-row]').remove();
+            updateNutritionPreview();
         });
+
+        rows.addEventListener('input', event => {
+            if (event.target.matches('input[name$="[nutrition_grams]"]')) updateNutritionPreview();
+        });
+        document.getElementById('servings').addEventListener('input', updateNutritionPreview);
+        updateNutritionPreview();
     })();
 </script>
 @endpush

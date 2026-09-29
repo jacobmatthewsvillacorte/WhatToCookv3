@@ -53,7 +53,9 @@ class MealPlanBatchController extends Controller
                 $dinerIds = $familyId ? ($data['attendance_by_date'][$dateKey] ?? $data['diner_profile_ids']) : [];
                 $profiles = $familyId ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get() : collect();
                 $childPlan = $familyId ? $childPlanner->plan($profiles, $date, $data['child_meal_modes'] ?? []) : null;
-                $profilesForDay = $familyId ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get() : collect([Profile::where('user_id', $request->user()->id)->first()])->filter();
+                $profilesForDay = $familyId
+                    ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get()
+                    : collect([$request->user()->profile()->firstOrCreate([])]);
                 $recipes = $ranker->rank(Recipe::with('ingredients')->get(), $profilesForDay, $pantry, $history, $data, $chosen, $date);
                 if ($recipes->isEmpty()) {
                     throw ValidationException::withMessages(['recipes' => ["No safe recipes are available for {$dateKey} and its selected diners."]]);
@@ -430,13 +432,13 @@ class MealPlanBatchController extends Controller
     {
         $profiles = $familyId
             ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get()
-            : collect([Profile::where('user_id', $request->user()->id)->first()])->filter();
+            : collect([$request->user()->profile()->firstOrCreate([])]);
         $likes = $profiles->flatMap(fn ($profile) => $profile->likes ?? [])->map(fn ($value) => strtolower($value))->filter()->unique();
         $dislikes = $profiles->flatMap(fn ($profile) => $profile->dislikes ?? [])->map(fn ($value) => strtolower($value))->filter()->unique();
         $pantryNames = $this->pantryFor($request, $familyId)->pluck('name')->map(fn ($value) => strtolower($value));
 
         $mealDate ??= now();
-        $hasYoungChild = $profiles->contains(fn (HouseholdProfile $profile) => in_array(
+        $hasYoungChild = $profiles->contains(fn ($profile) => in_array(
             $this->childPlanner->ageBand($profile->birth_date, $mealDate),
             ['0-5_months', '6-11_months', '12-23_months', '2-5_years'],
             true,

@@ -286,9 +286,14 @@ export class PlanReviewPage {
       next: result => {
         this.saving = false;
         this.applyResponse(result);
-        const firstMeal = result.meal_plans.slice().sort((a, b) => a.planned_date.localeCompare(b.planned_date))[0];
-        const startDate = firstMeal?.planned_date?.slice(0, 10) || result.batch.start_date;
-        this.router.navigate(['/tabs/meal-plan'], { replaceUrl: true, queryParams: { refresh: Date.now(), start_date: startDate, generated_range: `${result.batch.start_date} to ${result.batch.end_date}` } });
+        const startDate = result.batch.start_date?.slice(0, 10) || new Date().toISOString().slice(0, 10);
+        const navigation = this.router.navigate(['/tabs/meal-plan'], {
+          replaceUrl: true,
+          queryParams: { refresh: Date.now(), start_date: startDate, generated_range: `${result.batch.start_date} to ${result.batch.end_date}` },
+        });
+        void Promise.resolve(navigation).then(navigated => {
+          if (navigated === false) this.router.navigateByUrl('/tabs/meal-plan', { replaceUrl: true });
+        }).catch(() => this.router.navigateByUrl('/tabs/meal-plan', { replaceUrl: true }));
       },
       error: error => {
         this.saving = false;

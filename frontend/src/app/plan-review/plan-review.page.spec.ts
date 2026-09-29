@@ -134,6 +134,17 @@ describe('PlanReviewPage', () => {
     }));
   });
 
+  it('falls back to the planner URL when the primary navigation is rejected', async () => {
+    component.replaceConflicts = false;
+    api.saveMealPlanBatch.and.returnValue(of(response('saved')));
+    router.navigate.and.returnValue(Promise.resolve(false));
+
+    component.savePlan();
+    await Promise.resolve();
+
+    expect(router.navigateByUrl).toHaveBeenCalledWith('/tabs/meal-plan', { replaceUrl: true });
+  });
+
   it('adds shortages to the shopping list only once during a review', () => {
     api.addMealPlanBatchShortagesToShoppingList.and.returnValue(of({ items: [], message: 'Added.' }));
 

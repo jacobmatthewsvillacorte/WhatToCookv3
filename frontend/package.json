@@ -9,6 +9,7 @@
     "configure:production": "node scripts/configure-production-api.mjs",
     "build": "npm run configure:production && ng build --configuration production",
     "build:android": "npm run build && npx cap sync android",
+    "build:android:local": "ng build --configuration development && npx cap sync android",
     "verify:android": "npx cap sync android",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",

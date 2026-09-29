@@ -66,7 +66,11 @@ class AdminRecipeController extends Controller
             'ingredients' => $recipe->ingredients
                 ->map(fn ($ingredient) => array_merge(
                     $ingredient->only(['name', 'quantity', 'unit', 'nutrition_grams', 'is_substitute']),
-                    ['nutrition_fdc_id' => $ingredient->nutritionFood?->fdc_id]
+                    [
+                        'nutrition_fdc_id' => $ingredient->nutritionFood?->fdc_id,
+                        'nutrition_description' => $ingredient->nutritionFood?->description,
+                        'nutrition_per_100g' => $ingredient->nutritionFood?->nutrients,
+                    ]
                 ))
                 ->all(),
         ]);

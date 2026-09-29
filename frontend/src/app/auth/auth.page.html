@@ -17,7 +17,7 @@
         <ion-input [(ngModel)]="password" name="password" label="Password" labelPlacement="stacked" type="password" [autocomplete]="mode === 'login' ? 'current-password' : 'new-password'" required></ion-input>
         <ion-input *ngIf="mode === 'register'" [(ngModel)]="passwordConfirmation" name="passwordConfirmation" label="Confirm password" labelPlacement="stacked" type="password" autocomplete="new-password" required></ion-input>
         <p class="error" *ngIf="error" role="alert">{{ error }}</p>
-        <ion-button expand="block" type="submit" [disabled]="submitting">{{ submitting ? 'Please wait…' : (mode === 'login' ? 'Sign in' : 'Create account') }}</ion-button>
+        <ion-button expand="block" type="button" (click)="submit()" [disabled]="submitting">{{ submitting ? 'Please wait…' : (mode === 'login' ? 'Sign in' : 'Create account') }}</ion-button>
       </form>
     </section>
   </main>

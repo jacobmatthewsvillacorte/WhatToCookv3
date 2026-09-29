@@ -36,6 +36,21 @@ class MealPlanBatchApiTest extends TestCase
         $this->assertDatabaseHas('meal_plans', ['recipe_id' => $recipe->id, 'status' => 'scheduled']);
     }
 
+    public function test_personal_generation_creates_a_draft_for_a_user_without_a_saved_profile(): void
+    {
+        $user = User::factory()->create();
+        $recipe = $this->recipe($user, 'Chicken Tinola', 'Chicken', '1', 'kg');
+
+        $this->actingAs($user, 'sanctum')->postJson('/api/meal-plan-batches/generate', [
+            'start_date' => '2026-08-03', 'end_date' => '2026-08-03', 'meal_types' => ['dinner'], 'servings' => 1,
+        ])->assertCreated()
+            ->assertJsonPath('batch.family_id', null)
+            ->assertJsonPath('meal_plans.0.recipe_id', $recipe->id)
+            ->assertJsonPath('meal_plans.0.status', 'draft');
+
+        $this->assertDatabaseHas('profiles', ['user_id' => $user->id]);
+    }
+
     public function test_discarding_a_draft_has_no_side_effects_on_saved_meals(): void
     {
         $user = User::factory()->create();

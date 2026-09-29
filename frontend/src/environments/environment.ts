@@ -6,7 +6,7 @@ export const environment = {
   production: false,
   // Matches Laravel's default `php artisan serve` development port.
   apiBaseUrl: 'http://127.0.0.1:8000/api',
-  androidApiBaseUrl: 'http://10.0.2.2:8000/api'
+  androidApiBaseUrl: 'http://192.168.100.14:8000/api'
 };
 /*
  * For easier debugging in development mode, you can import the following file
