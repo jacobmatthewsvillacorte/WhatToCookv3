@@ -117,7 +117,7 @@
                     <label>USDA food record</label>
                     <input data-nutrition-query value="{{ $ingredient['name'] ?? '' }}" placeholder="Search USDA food">
                     <button class="secondary" type="button" data-search-nutrition>Search USDA</button>
-                    <div data-nutrition-results class="nutrition-results" aria-live="polite">@if (!empty($ingredient['nutrition_fdc_id']))<p class="nutrition-selected">Saved USDA record: {{ $ingredient['nutrition_description'] ?: 'Food record' }} (FDC {{ $ingredient['nutrition_fdc_id'] }}).</p>@endif</div>
+                    <div data-nutrition-results class="nutrition-results" aria-live="polite">@if (!empty($ingredient['nutrition_fdc_id']))<p class="nutrition-selected">Saved USDA record: {{ $ingredient['nutrition_description'] ?? 'Food record' }} (FDC {{ $ingredient['nutrition_fdc_id'] }}).</p>@endif</div>
                 </div>
                 <div class="field">
                     <label>USDA FDC ID</label>
