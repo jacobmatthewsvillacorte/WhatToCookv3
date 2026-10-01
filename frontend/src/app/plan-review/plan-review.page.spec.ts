@@ -155,4 +155,25 @@ describe('PlanReviewPage', () => {
     expect(component.shortagesAdded).toBeTrue();
     expect(component.message).toBe('Added.');
   });
+
+  it('formats date-only and Laravel ISO dates without showing time data', () => {
+    expect(component.dateLabel('2026-11-02')).toBe('Nov 2');
+    expect(component.dateLabel('2026-11-04T00:00:00.000Z')).toBe('Nov 4');
+    expect(component.dateRangeLabel('2026-11-02', '2026-11-04T00:00:00.000Z')).toBe('Nov 2 - Nov 4, 2026');
+    expect(component.dateRangeLabel('2026-11-02', '2027-01-04')).toBe('Nov 2 - Jan 4, 2027');
+  });
+
+  it('counts ingredient statuses for the compact readiness summary', () => {
+    component.response = response();
+    component.response.summary.ingredients = [
+      { ...shortage, status: 'low_stock' },
+      { ...shortage, status: 'ready' },
+      { ...shortage, status: 'missing' },
+      { ...shortage, status: 'needs_review' },
+    ];
+
+    expect(component.ingredientCounts).toEqual({ ready: 1, low_stock: 1, missing: 1, needs_review: 1 });
+    expect(component.ingredientsByStatus('missing')).toHaveSize(1);
+    expect(component.ingredientReadinessLabel).toBe('1 ready; 3 need attention');
+  });
 });

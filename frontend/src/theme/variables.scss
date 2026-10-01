@@ -194,6 +194,20 @@ body.ion-palette-dark.md {
   --ion-tab-bar-background: var(--wtc-color-surface);
   --ion-tab-bar-background-focused: var(--wtc-color-surface-muted);
 
+  /* Ionic alerts/selects use these step tokens inside their shadow DOM. */
+  --ion-overlay-background-color: var(--wtc-color-surface);
+  --ion-color-step-100: var(--wtc-color-surface);
+  --ion-color-step-150: var(--wtc-color-surface-raised);
+  --ion-color-step-250: var(--wtc-color-border);
+  --ion-color-step-400: var(--wtc-color-text-muted);
+  --ion-color-step-550: var(--wtc-color-text-muted);
+  --ion-color-step-700: var(--wtc-color-text);
+  --ion-color-step-850: var(--wtc-color-text);
+  --ion-text-color-step-150: var(--wtc-color-text);
+  --ion-text-color-step-300: var(--wtc-color-text);
+  --ion-text-color-step-450: var(--wtc-color-text-muted);
+  --ion-text-color-step-600: var(--wtc-color-text-muted);
+
   --ion-color-primary: #e1815e;
   --ion-color-primary-rgb: 225, 129, 94;
   --ion-color-primary-contrast: #301d17;

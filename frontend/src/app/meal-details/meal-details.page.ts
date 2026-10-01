@@ -66,6 +66,12 @@ export class MealDetailsPage {
     return names.length ? names.join(', ') : 'No diners selected';
   }
 
+  get pantryReadinessMessage(): string {
+    const items = this.ingredientChecks.filter(item => item.status !== 'ready');
+    if (!items.length) return 'All required ingredients are ready in the pantry.';
+    return `Not ready: ${items.map(item => item.status === 'needs_review' ? `${item.name} needs review` : `${item.name} ${item.status === 'low_stock' ? `needs ${item.missing_quantity ?? 'more'}` : 'is missing'}`).join('; ')}.`;
+  }
+
   load(planId = this.plan?.id): void {
     if (!planId) return;
     this.loading = true;
@@ -171,7 +177,11 @@ export class MealDetailsPage {
   }
 
   requestCook(): void {
-    if (!this.preflight?.can_cook_from_pantry || this.actionPending) return;
+    if (this.actionPending) return;
+    if (!this.preflight?.can_cook_from_pantry) {
+      this.message = `${this.pantryReadinessMessage} Add or update the ingredients before deducting pantry stock.`;
+      return;
+    }
     this.confirmingCook = true;
   }
 

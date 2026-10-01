@@ -86,4 +86,36 @@ class ConfirmedPurchaseApiTest extends TestCase
         $this->actingAs($user, 'sanctum')->postJson("/api/shopping-list/{$shopping->id}/confirm-purchase", $payload)->assertUnprocessable();
         $this->assertDatabaseCount('pantry_items', 1);
     }
+
+    public function test_bought_items_can_be_deleted_in_bulk_without_touching_unpurchased_or_other_users_items(): void
+    {
+        $user = User::factory()->create();
+        $other = User::factory()->create();
+        $ownedBought = ShoppingList::create(['user_id' => $user->id, 'ingredient_name' => 'rice', 'is_purchased' => true]);
+        $ownedOpen = ShoppingList::create(['user_id' => $user->id, 'ingredient_name' => 'eggs', 'is_purchased' => false]);
+        $otherBought = ShoppingList::create(['user_id' => $other->id, 'ingredient_name' => 'oil', 'is_purchased' => true]);
+
+        $this->actingAs($user, 'sanctum')->deleteJson('/api/shopping-list/purchased')
+            ->assertOk()->assertJsonPath('deleted', 1);
+
+        $this->assertDatabaseMissing('shopping_lists', ['id' => $ownedBought->id]);
+        $this->assertDatabaseHas('shopping_lists', ['id' => $ownedOpen->id]);
+        $this->assertDatabaseHas('shopping_lists', ['id' => $otherBought->id]);
+    }
+
+    public function test_bought_items_can_be_deleted_in_the_active_family_scope_only(): void
+    {
+        $owner = User::factory()->create();
+        $otherFamilyOwner = User::factory()->create();
+        $family = $this->actingAs($owner, 'sanctum')->postJson('/api/families', ['name' => 'Household'])->assertCreated()->json();
+        $otherFamily = $this->actingAs($otherFamilyOwner, 'sanctum')->postJson('/api/families', ['name' => 'Other'])->assertCreated()->json();
+        $familyBought = ShoppingList::create(['user_id' => $owner->id, 'family_id' => $family['id'], 'ingredient_name' => 'rice', 'is_purchased' => true]);
+        $otherBought = ShoppingList::create(['user_id' => $otherFamilyOwner->id, 'family_id' => $otherFamily['id'], 'ingredient_name' => 'oil', 'is_purchased' => true]);
+
+        $this->actingAs($owner, 'sanctum')->deleteJson('/api/shopping-list/purchased')
+            ->assertOk()->assertJsonPath('deleted', 1);
+
+        $this->assertDatabaseMissing('shopping_lists', ['id' => $familyBought->id]);
+        $this->assertDatabaseHas('shopping_lists', ['id' => $otherBought->id]);
+    }
 }

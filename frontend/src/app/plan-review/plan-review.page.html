@@ -21,7 +21,7 @@
       <ion-card>
         <ion-card-header>
           <ion-card-title>{{ isDraft ? 'Your draft is ready to review' : 'Meal plan' }}</ion-card-title>
-          <ion-card-subtitle>{{ response.batch.start_date }} to {{ response.batch.end_date }}</ion-card-subtitle>
+          <ion-card-subtitle>{{ dateRangeLabel(response.batch.start_date, response.batch.end_date) }}</ion-card-subtitle>
         </ion-card-header>
         <ion-card-content>
           <p>{{ isFamilyPlan ? 'Shared household plan' : 'Personal plan' }} · {{ response.summary.meal_count }} meal{{ response.summary.meal_count === 1 ? '' : 's' }}</p>
@@ -56,18 +56,15 @@
       <section aria-labelledby="draft-meals-heading">
         <h2 id="draft-meals-heading">Draft meals</h2>
         <ion-list inset="true">
-          <ion-item *ngFor="let meal of meals" [button]="isDraft" [detail]="isDraft" (click)="openMealEditor(meal)">
+          <ion-item *ngFor="let meal of meals" class="meal-item">
             <ion-label>
-              <p>{{ dateLabel(meal.planned_date) }} · {{ mealTypeLabel(meal.meal_type) }}</p>
+              <p class="meal-meta">{{ dateLabel(meal.planned_date) }} <span aria-hidden="true">·</span> {{ mealTypeLabel(meal.meal_type) }}</p>
               <h2>{{ recipeName(meal) }}</h2>
-              <p>{{ meal.servings }} serving{{ meal.servings === 1 ? '' : 's' }} · {{ dinerNames(meal) }}</p>
-              <p *ngIf="meal.selection_reason?.length"><strong>Why this meal was chosen:</strong> {{ meal.selection_reason?.join(' ') }}</p>
-              <ng-container *ngFor="let child of meal.child_meal_plan?.children">
-                <p><strong>{{ child.name }}:</strong> {{ child.portion }} · {{ child.meal_choice === 'separate_child_meal' ? 'Separate child meal' : (child.meal_choice === 'exclude' ? 'Excluded' : 'Family meal adapted') }}</p>
-                <p *ngIf="child.meal_choice !== 'exclude'">{{ child.adaptation_notes.join(' ') }}</p>
-              </ng-container>
+              <div class="meal-actions">
+                <ion-button fill="clear" size="small" (click)="openMealReason(meal)">Why this meal?</ion-button>
+                <ion-button fill="clear" size="small" *ngIf="isDraft" (click)="openMealEditor(meal)">Change</ion-button>
+              </div>
             </ion-label>
-            <ion-note slot="end" *ngIf="isDraft">Change</ion-note>
           </ion-item>
           <ion-item *ngIf="!meals.length">
             <ion-label>No meals were generated for this draft.</ion-label>
@@ -78,19 +75,18 @@
       <section aria-labelledby="ingredient-check-heading">
         <h2 id="ingredient-check-heading">Ingredient check</h2>
         <p class="section-help">This checks the total amount needed across the draft against the current pantry. It does not deduct any pantry stock.</p>
-        <ion-list inset="true">
-          <ion-item *ngFor="let item of ingredients">
-            <ion-label>
-              <h2>{{ item.name }}</h2>
-              <p>{{ ingredientDetail(item) }}</p>
-              <p *ngIf="item.substitutes?.length">Possible substitutes: {{ item.substitutes?.join(', ') }}</p>
-            </ion-label>
-            <ion-note slot="end" [color]="statusColor(item.status)">{{ statusLabel(item.status) }}</ion-note>
-          </ion-item>
-          <ion-item *ngIf="!ingredients.length">
-            <ion-label>No ingredient summary is available for this plan.</ion-label>
-          </ion-item>
-        </ion-list>
+        <ion-card class="readiness-summary">
+          <ion-card-content>
+            <strong class="readiness-summary__headline">{{ ingredientReadinessLabel }}</strong>
+            <div class="status-counts">
+              <span class="status-count status-count--ready"><strong>Ready</strong><b>{{ ingredientCounts.ready }}</b></span>
+              <span class="status-count status-count--low"><strong>Need more</strong><b>{{ ingredientCounts.low_stock }}</b></span>
+              <span class="status-count status-count--missing"><strong>Missing</strong><b>{{ ingredientCounts.missing }}</b></span>
+              <span class="status-count status-count--review"><strong>Needs review</strong><b>{{ ingredientCounts.needs_review }}</b></span>
+            </div>
+            <ion-button fill="outline" size="small" (click)="showIngredientDetails = true" [disabled]="!ingredients.length">View all ingredients</ion-button>
+          </ion-card-content>
+        </ion-card>
       </section>
 
       <section *ngIf="isDraft" class="actions" aria-label="Draft actions">
@@ -154,6 +150,40 @@
       </ion-list>
       <ion-note color="medium">Allergy and diet checks run again before the change is accepted.</ion-note>
       <ion-button expand="block" class="save-change" (click)="saveMealChange()" [disabled]="saving">{{ saving ? 'Saving…' : 'Save meal change' }}</ion-button>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="!!selectedMeal" aria-labelledby="meal-reason-title" (didDismiss)="onMealReasonDidDismiss()">
+  <ng-template>
+    <ion-header><ion-toolbar><ion-title id="meal-reason-title">Why this meal?</ion-title><ion-buttons slot="end"><ion-button (click)="closeMealReason()">Close</ion-button></ion-buttons></ion-toolbar></ion-header>
+    <ion-content class="ion-padding" *ngIf="selectedMeal">
+      <h2>{{ recipeName(selectedMeal) }}</h2>
+      <ion-list inset="true">
+        <ion-item *ngFor="let reason of selectedMeal.selection_reason"><ion-label>{{ reason }}</ion-label></ion-item>
+        <ion-item *ngIf="!selectedMeal.selection_reason?.length"><ion-label>No selection details were returned for this meal.</ion-label></ion-item>
+      </ion-list>
+      <ion-list inset="true" *ngIf="selectedMeal.child_meal_plan?.children?.length">
+        <ion-list-header><ion-label>Child adaptation</ion-label></ion-list-header>
+        <ng-container *ngFor="let child of selectedMeal.child_meal_plan?.children">
+          <ion-item><ion-label><h3>{{ child.name }} · {{ child.portion }}</h3><p>{{ child.meal_choice === 'separate_child_meal' ? 'Separate child meal' : (child.meal_choice === 'exclude' ? 'Excluded' : 'Family meal adapted') }}</p><p *ngIf="child.adaptation_notes.length">{{ child.adaptation_notes.join(' ') }}</p><p *ngIf="child.guidance_note">{{ child.guidance_note }}</p></ion-label></ion-item>
+        </ng-container>
+      </ion-list>
+      <ion-note color="medium" *ngIf="selectedMeal.child_meal_plan?.medical_disclaimer">{{ selectedMeal.child_meal_plan?.medical_disclaimer }}</ion-note>
+    </ion-content>
+  </ng-template>
+</ion-modal>
+
+<ion-modal [isOpen]="showIngredientDetails" aria-labelledby="ingredient-details-title" (didDismiss)="showIngredientDetails = false">
+  <ng-template>
+    <ion-header><ion-toolbar><ion-title id="ingredient-details-title">Ingredient details</ion-title><ion-buttons slot="end"><ion-button (click)="showIngredientDetails = false">Close</ion-button></ion-buttons></ion-toolbar></ion-header>
+    <ion-content class="ion-padding">
+      <ng-container *ngFor="let status of ingredientStatuses">
+        <ion-list inset="true" *ngIf="ingredientsByStatus(status).length">
+          <ion-list-header><ion-label>{{ statusLabel(status) }}</ion-label></ion-list-header>
+          <ion-item *ngFor="let item of ingredientsByStatus(status)"><ion-label><h2>{{ item.name }}</h2><p>Required: {{ item.required_quantity ?? 'Not specified' }} {{ item.unit || '' }}</p><p>Pantry: {{ item.pantry_quantity ?? 'Unknown' }} {{ item.unit || '' }} · Missing: {{ item.missing_quantity ?? 'Unknown' }} {{ item.unit || '' }}</p><p *ngIf="item.substitutes?.length">Substitutes: {{ item.substitutes?.join(', ') }}</p></ion-label><ion-note slot="end" [color]="statusColor(item.status)">{{ statusLabel(item.status) }}</ion-note></ion-item>
+        </ion-list>
+      </ng-container>
     </ion-content>
   </ng-template>
 </ion-modal>

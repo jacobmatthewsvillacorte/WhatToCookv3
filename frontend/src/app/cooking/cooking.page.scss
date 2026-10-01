@@ -19,6 +19,7 @@
 .section-title > span { padding: .35rem .55rem; border-radius: var(--wtc-radius-pill); background: var(--wtc-color-primary-soft); color: var(--wtc-color-primary-strong); font-size: var(--wtc-font-size-sm); font-weight: 800; }
 .timer-display { margin: var(--wtc-space-4) 0; color: var(--wtc-color-text); font-size: clamp(2.5rem, 12vw, 4rem); font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -.05em; line-height: 1; }
 .timer-display--running { color: var(--wtc-color-primary); }
+.timer-status { margin: calc(var(--wtc-space-4) * -1) 0 var(--wtc-space-4); color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-sm); }
 .timer-controls { display: flex; align-items: end; flex-wrap: wrap; gap: var(--wtc-space-2); }
 .timer-controls ion-input { width: 7rem; }
 .cooking-tip { display: flex; gap: var(--wtc-space-3); padding: var(--wtc-space-4); border-radius: var(--wtc-radius-lg); background: var(--wtc-color-warning-soft); color: var(--wtc-color-warning); }

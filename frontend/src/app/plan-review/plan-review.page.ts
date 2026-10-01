@@ -45,6 +45,7 @@ export class PlanReviewPage {
     { value: 'frozen', label: 'Frozen' },
     { value: 'other', label: 'Other' },
   ];
+  readonly ingredientStatuses: MealPlanIngredientStatus['status'][] = ['missing', 'low_stock', 'needs_review', 'ready'];
 
   batchId?: number;
   response?: MealPlanBatchResponse;
@@ -62,6 +63,8 @@ export class PlanReviewPage {
   purchaseMessage = '';
   shortagesAdded = false;
   private modalReturnFocus?: HTMLElement;
+  selectedMeal?: MealPlan;
+  showIngredientDetails = false;
 
   constructor(
     private api: ApiService,
@@ -90,6 +93,21 @@ export class PlanReviewPage {
 
   get shortages(): MealPlanIngredientStatus[] {
     return this.response?.summary.shortages || [];
+  }
+
+  get ingredientCounts(): Record<MealPlanIngredientStatus['status'], number> {
+    return this.ingredients.reduce((counts, item) => {
+      counts[item.status]++;
+      return counts;
+    }, { ready: 0, low_stock: 0, missing: 0, needs_review: 0 });
+  }
+
+  get ingredientReadinessLabel(): string {
+    if (!this.ingredients.length) return 'No ingredient summary is available.';
+    if (this.ingredientCounts.missing || this.ingredientCounts.low_stock || this.ingredientCounts.needs_review) {
+      return `${this.ingredientCounts.ready} ready; ${this.ingredientCounts.low_stock + this.ingredientCounts.missing + this.ingredientCounts.needs_review} need attention`;
+    }
+    return 'Everything needed is in the pantry.';
   }
 
   get isDraft(): boolean {
@@ -152,6 +170,14 @@ export class PlanReviewPage {
     this.editorMessage = '';
   }
   onMealEditorDidDismiss(): void { this.closeMealEditor(); this.restoreModalFocus(); }
+
+  openMealReason(meal: MealPlan): void {
+    this.rememberModalReturnFocus();
+    this.selectedMeal = meal;
+  }
+
+  closeMealReason(): void { this.selectedMeal = undefined; }
+  onMealReasonDidDismiss(): void { this.closeMealReason(); this.restoreModalFocus(); }
 
   isEditorDinerSelected(dinerId: number): boolean {
     return !!this.editor?.dinerIds.includes(dinerId);
@@ -337,8 +363,22 @@ export class PlanReviewPage {
   }
 
   dateLabel(date: string): string {
-    const parsed = new Date(`${date.slice(0, 10)}T12:00:00`);
-    return Number.isNaN(parsed.getTime()) ? date : parsed.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    const parsed = this.parseDateOnly(date);
+    return parsed ? parsed.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : (date?.match(/^\d{4}-\d{2}-\d{2}/)?.[0] || 'Date unavailable');
+  }
+
+  dateRangeLabel(start: string, end: string): string {
+    const startDate = this.parseDateOnly(start);
+    const endDate = this.parseDateOnly(end);
+    if (!startDate || !endDate) return `${this.dateLabel(start)} to ${this.dateLabel(end)}`;
+    const sameYear = startDate.getFullYear() === endDate.getFullYear();
+    const startText = startDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const endText = endDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    return `${startText} - ${endText}, ${endDate.getFullYear()}`;
+  }
+
+  mealStatusLabel(meal: MealPlan): string {
+    return meal.status === 'completed' ? 'Completed' : meal.status === 'scheduled' ? 'Scheduled' : 'Ready to review';
   }
 
   statusLabel(status: MealPlanIngredientStatus['status']): string {
@@ -359,6 +399,10 @@ export class PlanReviewPage {
     }
   }
 
+  ingredientsByStatus(status: MealPlanIngredientStatus['status']): MealPlanIngredientStatus[] {
+    return this.ingredients.filter(item => item.status === status);
+  }
+
   ingredientDetail(item: MealPlanIngredientStatus): string {
     if (item.status === 'needs_review') return 'The recipe quantity needs a quick check before stock can be compared.';
     const unit = item.unit ? ` ${item.unit}` : '';
@@ -367,6 +411,13 @@ export class PlanReviewPage {
     const missing = item.missing_quantity ?? 0;
     if (item.status === 'ready') return `Need ${needed}${unit}; ${inPantry}${unit} is in the pantry.`;
     return `Need ${needed}${unit}; ${inPantry}${unit} is in the pantry; ${missing}${unit} still needed.`;
+  }
+
+  private parseDateOnly(value: string): Date | undefined {
+    const dateOnly = value?.match(/^\d{4}-\d{2}-\d{2}/)?.[0];
+    if (!dateOnly) return undefined;
+    const parsed = new Date(`${dateOnly}T12:00:00`);
+    return Number.isNaN(parsed.getTime()) ? undefined : parsed;
   }
 
   isRecommended(recipeId: number): boolean {

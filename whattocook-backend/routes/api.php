@@ -88,6 +88,7 @@ Route::middleware(['throttle:api', 'auth:sanctum'])->group(function () {
     Route::post('/meal-plans/{mealPlan}/complete-without-deduction', [MealPlanController::class, 'completeWithoutDeduction']);
     Route::get('/meal-plans/{mealPlan}', [MealPlanController::class, 'show']);
     Route::apiResource('meal-history', MealHistoryController::class)->except(['show']);
+    Route::delete('/shopping-list/purchased', [ShoppingListController::class, 'destroyPurchased']);
     Route::apiResource('shopping-list', ShoppingListController::class)->except(['show']);
     Route::post('/shopping-list/{shoppingList}/confirm-purchase', [ShoppingListController::class, 'confirmPurchase']);
 });

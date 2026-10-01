@@ -22,6 +22,7 @@
     <section class="purchase-tools" *ngIf="!loading && !loadError && items.length">
       <ion-note>{{ remainingItems.length }} item{{ remainingItems.length === 1 ? '' : 's' }} remaining</ion-note>
       <ion-button size="small" fill="outline" (click)="confirmMarkAll = true" [disabled]="!remainingItems.length || markingAll">{{ markingAll ? 'Updating…' : 'Mark all remaining bought' }}</ion-button>
+      <ion-button size="small" fill="outline" color="danger" *ngIf="purchasedItems.length" (click)="confirmDeleteBought = true" [disabled]="deletingBought">{{ deletingBought ? 'Deleting…' : 'Delete bought items' }}</ion-button>
     </section>
 
     <section class="export-tools" *ngIf="!loading && !loadError && items.length">
@@ -55,7 +56,7 @@
     <ion-list *ngIf="!loading && !loadError" aria-label="Shopping list items">
       <ion-item *ngFor="let item of items">
         <ion-checkbox slot="start" [checked]="item.is_purchased" (ionChange)="toggle(item)" aria-label="Mark {{ item.ingredient_name }} as bought"></ion-checkbox>
-        <ion-label [class.done]="item.is_purchased">{{ item.ingredient_name }}<p>{{ item.quantity || '' }} {{ item.unit || '' }}</p></ion-label>
+        <ion-label [class.done]="item.is_purchased">{{ item.ingredient_name }}<p *ngIf="!item.is_purchased">Buy: {{ item.purchase_quantity || item.quantity || 'Amount to confirm' }} {{ item.purchase_unit || item.unit || '' }}</p><p *ngIf="item.quantity && (item.purchase_quantity || item.purchase_unit) && !item.is_purchased">Recipe need: {{ item.quantity }} {{ item.unit || '' }}</p><p *ngIf="item.purchase_note && !item.is_purchased">{{ item.purchase_note }}</p><p *ngIf="item.is_purchased">{{ item.quantity || '' }} {{ item.unit || '' }}</p></ion-label>
         <ion-button *ngIf="!item.is_purchased" fill="outline" size="small" slot="end" (click)="beginPurchase(item)">Buy & add</ion-button>
         <ion-button fill="clear" color="danger" slot="end" (click)="remove(item)" aria-label="Remove {{ item.ingredient_name }}"><ion-icon name="trash-outline"></ion-icon></ion-button>
       </ion-item>
@@ -70,3 +71,4 @@
 </ion-content>
 
 <ion-alert [isOpen]="confirmMarkAll" header="Mark all remaining items as bought?" [message]="'This checks every remaining item in this ' + (household ? 'shared' : 'personal') + ' shopping list. You can uncheck an item afterwards if needed.'" [buttons]="markAllAlertButtons" (didDismiss)="confirmMarkAll = false"></ion-alert>
+<ion-alert [isOpen]="confirmDeleteBought" header="Delete bought items?" [message]="'This permanently removes ' + purchasedItems.length + ' bought item' + (purchasedItems.length === 1 ? '' : 's') + ' from this ' + (household ? 'shared' : 'personal') + ' list. Unpurchased items will remain.'" [buttons]="deleteBoughtAlertButtons" (didDismiss)="confirmDeleteBought = false"></ion-alert>

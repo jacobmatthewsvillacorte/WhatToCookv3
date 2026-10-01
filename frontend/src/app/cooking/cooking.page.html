@@ -32,7 +32,8 @@
       <section class="timer-card" aria-labelledby="timer-heading">
         <div class="section-title"><div><p class="wtc-eyebrow">Stay on track</p><h2 id="timer-heading">Kitchen timer</h2></div><ion-icon name="timer-outline" aria-hidden="true"></ion-icon></div>
         <div class="timer-display" [class.timer-display--running]="timerRunning" aria-live="polite">{{ timerLabel }}</div>
-        <div class="timer-controls"><ion-input type="number" min="1" max="180" label="Minutes" labelPlacement="stacked" [(ngModel)]="timerMinutes" [disabled]="timerRunning"></ion-input><ion-button (click)="startTimer()" [disabled]="timerRunning"><ion-icon slot="start" name="play"></ion-icon>Start</ion-button><ion-button fill="outline" (click)="pauseTimer()" [disabled]="!timerRunning"><ion-icon slot="start" name="pause"></ion-icon>Pause</ion-button><ion-button fill="clear" (click)="resetTimer()">Reset</ion-button></div>
+        <p class="timer-status">Elapsed time · pauses at the {{ timerMinutes }} minute target</p>
+        <div class="timer-controls"><ion-input type="number" min="1" max="180" label="Target minutes" labelPlacement="stacked" [(ngModel)]="timerMinutes" [disabled]="timerRunning"></ion-input><ion-button (click)="startTimer()" [disabled]="timerRunning"><ion-icon slot="start" name="play"></ion-icon>Start</ion-button><ion-button fill="outline" (click)="pauseTimer()" [disabled]="!timerRunning"><ion-icon slot="start" name="pause"></ion-icon>Pause</ion-button><ion-button fill="clear" (click)="resetTimer()">Reset</ion-button></div>
       </section>
 
       <aside *ngIf="preflight.recipe.cooking_tips" class="cooking-tip">
@@ -52,8 +53,8 @@
       <section class="finish" aria-label="Finish cooking">
         <p class="wtc-eyebrow">All done?</p><h2>Finish cooking</h2>
         <ion-textarea label="Cooking notes (optional)" labelPlacement="stacked" [(ngModel)]="completionNotes" maxlength="5000" placeholder="What worked, substitutions, or changes for next time"></ion-textarea>
-        <ion-button expand="block" (click)="requestFinishWithPantryDeduction()" [disabled]="!preflight.can_cook_from_pantry || finishing">{{ finishing ? 'Finishing...' : 'Cook & deduct pantry' }}</ion-button>
-        <ion-note color="medium" *ngIf="!preflight.can_cook_from_pantry">Pantry deduction is unavailable until the ingredient check is ready.</ion-note>
+        <ion-button expand="block" (click)="requestFinishWithPantryDeduction()" [disabled]="finishing">{{ finishing ? 'Finishing...' : 'Cook & deduct pantry' }}</ion-button>
+        <ion-note [color]="preflight.can_cook_from_pantry ? 'success' : 'warning'">{{ pantryReadinessMessage }}</ion-note>
         <ion-button expand="block" fill="outline" (click)="requestFinishWithoutPantryDeduction()" [disabled]="finishing">Mark cooked without pantry update</ion-button>
       </section>
     </ng-container>

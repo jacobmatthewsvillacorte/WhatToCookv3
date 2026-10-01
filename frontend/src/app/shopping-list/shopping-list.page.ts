@@ -17,6 +17,8 @@ export class ShoppingListPage {
   loading = false;
   loadError = '';
   markingAll = false;
+  deletingBought = false;
+  confirmDeleteBought = false;
   confirmMarkAll = false;
   purchaseItem?: ShoppingListItem;
   purchase: ConfirmedPurchase = this.emptyPurchase();
@@ -27,6 +29,10 @@ export class ShoppingListPage {
     { text: 'Cancel', role: 'cancel' },
     { text: 'Mark all bought', role: 'confirm', handler: () => this.markAllBought() },
   ];
+  readonly deleteBoughtAlertButtons = [
+    { text: 'Cancel', role: 'cancel' },
+    { text: 'Delete bought items', role: 'destructive', handler: () => this.deleteBoughtItems() },
+  ];
 
   constructor(private api: ApiService, private auth: AuthService, private context: HouseholdContextService, private exports: ExportService) {}
 
@@ -34,6 +40,7 @@ export class ShoppingListPage {
   ionViewWillLeave(): void { this.cancelLoad(); }
 
   get remainingItems(): ShoppingListItem[] { return this.items.filter(item => !item.is_purchased); }
+  get purchasedItems(): ShoppingListItem[] { return this.items.filter(item => item.is_purchased); }
 
   load(): void {
     const id = this.auth.user?.id;
@@ -88,7 +95,7 @@ export class ShoppingListPage {
 
   beginPurchase(item: ShoppingListItem): void {
     this.purchaseItem = item;
-    this.purchase = { ...this.emptyPurchase(), name: item.ingredient_name, quantity: item.quantity || '', unit: item.unit || '' };
+    this.purchase = { ...this.emptyPurchase(), name: item.ingredient_name, quantity: item.purchase_quantity || item.quantity || '', unit: item.purchase_unit || item.unit || '' };
   }
 
   confirmPurchase(): void {
@@ -118,6 +125,23 @@ export class ShoppingListPage {
     forkJoin(remaining.map(item => this.api.updateShoppingItem(item.id, { is_purchased: true }))).subscribe({
       next: () => { this.markingAll = false; this.items = this.items.map(item => ({ ...item, is_purchased: item.is_purchased || remaining.some(selected => selected.id === item.id) })); },
       error: () => { this.markingAll = false; this.message = 'Could not mark all items as bought. Please try again.'; },
+    });
+  }
+
+  deleteBoughtItems(): void {
+    this.confirmDeleteBought = false;
+    if (!this.purchasedItems.length || this.deletingBought) return;
+    this.deletingBought = true;
+    this.api.deletePurchasedShoppingItems().subscribe({
+      next: result => {
+        this.deletingBought = false;
+        this.items = this.items.filter(item => !item.is_purchased);
+        this.message = result.message;
+      },
+      error: error => {
+        this.deletingBought = false;
+        this.message = error?.error?.message || 'Could not delete bought items. Please try again.';
+      },
     });
   }
 

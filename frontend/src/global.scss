@@ -526,6 +526,32 @@ ion-action-sheet {
   --color: var(--wtc-color-text);
 }
 
+ion-alert,
+ion-action-sheet,
+ion-popover,
+ion-select-popover {
+  --background: var(--wtc-color-surface) !important;
+  --color: var(--wtc-color-text) !important;
+  --header-color: var(--wtc-color-text) !important;
+  --message-color: var(--wtc-color-text-muted) !important;
+  --button-color: var(--wtc-color-text) !important;
+  --button-color-activated: var(--wtc-color-primary) !important;
+}
+
+ion-alert::part(header),
+ion-alert::part(message),
+ion-alert::part(button),
+ion-action-sheet::part(button),
+ion-select-popover ion-item,
+ion-select-popover ion-label {
+  color: var(--wtc-color-text);
+}
+
+ion-alert::part(message) { color: var(--wtc-color-text-muted); }
+ion-alert::part(button),
+ion-action-sheet::part(button) { color: var(--wtc-color-text); }
+ion-radio { --color: var(--wtc-color-text-muted); --color-checked: var(--wtc-color-primary); }
+
 ion-toast {
   --background: var(--wtc-color-text);
   --color: var(--wtc-color-surface);

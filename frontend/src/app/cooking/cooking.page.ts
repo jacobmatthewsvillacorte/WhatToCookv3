@@ -60,6 +60,12 @@ export class CookingPage {
   get progressLabel(): string { return this.steps.length ? `Step ${this.stepIndex + 1} of ${this.steps.length}` : 'No steps available'; }
   get totalTime(): number { return (this.preflight?.recipe.prep_time || 0) + (this.preflight?.recipe.cook_time || 0); }
   get checkedIngredientCount(): number { return this.ingredientChecks.filter(Boolean).length; }
+  get notReadyIngredients() { return this.preflight?.ingredients_by_status.low_stock.concat(this.preflight.ingredients_by_status.missing, this.preflight.ingredients_by_status.needs_review) || []; }
+  get pantryReadinessMessage(): string {
+    const items = this.notReadyIngredients;
+    if (!items.length) return 'All required ingredients are ready in the pantry.';
+    return `Pantry check: ${items.map(item => item.status === 'needs_review' ? `${item.name} needs review` : `${item.name} ${item.status === 'low_stock' ? `needs ${item.missing_quantity ?? 'more'}` : 'is missing'}`).join('; ')}.`;
+  }
 
   ingredientLabel(ingredient: RecipeIngredient): string {
     return [ingredient.quantity, ingredient.unit, ingredient.name].filter(Boolean).join(' ');
@@ -70,14 +76,24 @@ export class CookingPage {
   toggleIngredient(index: number, checked: boolean): void { this.ingredientChecks[index] = checked; }
   startTimer(): void {
     if (this.timerRunning) return;
-    if (this.timerSeconds <= 0) this.timerSeconds = Math.max(1, Math.min(180, Number(this.timerMinutes) || 1)) * 60;
+    this.timerMinutes = Math.max(1, Math.min(180, Number(this.timerMinutes) || 1));
     this.timerRunning = true;
-    this.timerHandle = setInterval(() => { this.timerSeconds--; if (this.timerSeconds <= 0) this.pauseTimer(); }, 1000);
+    this.timerHandle = setInterval(() => {
+      this.timerSeconds++;
+      if (this.timerSeconds >= this.timerMinutes * 60) this.pauseTimer();
+    }, 1000);
   }
   pauseTimer(): void { this.timerRunning = false; if (this.timerHandle) clearInterval(this.timerHandle); this.timerHandle = undefined; }
   resetTimer(): void { this.pauseTimer(); this.timerSeconds = 0; }
   get timerLabel(): string { const minutes = Math.floor(this.timerSeconds / 60); return `${minutes}:${String(this.timerSeconds % 60).padStart(2, '0')}`; }
-  requestFinishWithPantryDeduction(): void { if (this.preflight?.can_cook_from_pantry && !this.finishing) this.confirmingCook = true; }
+  requestFinishWithPantryDeduction(): void {
+    if (this.finishing) return;
+    if (!this.preflight?.can_cook_from_pantry) {
+      this.message = `${this.pantryReadinessMessage} Add or update the ingredients before deducting pantry stock.`;
+      return;
+    }
+    this.confirmingCook = true;
+  }
   requestFinishWithoutPantryDeduction(): void { if (!this.finishing) this.confirmingWithoutDeduction = true; }
 
   finishWithPantryDeduction(): void {

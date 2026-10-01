@@ -80,6 +80,8 @@ describe('MealDetailsPage', () => {
     component.requestCook();
 
     expect(component.confirmingCook).toBeFalse();
+    expect(component.message).toContain('Ginger needs 1');
+    expect(component.message).toContain('Fish sauce is missing');
     expect(component.ingredientStatus(preflight.ingredients[3])).toBe('medium');
   });
 

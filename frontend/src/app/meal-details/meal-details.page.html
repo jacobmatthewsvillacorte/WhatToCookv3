@@ -48,10 +48,10 @@
         <ion-button expand="block" (click)="startCooking()" [disabled]="actionPending">Start cooking mode</ion-button>
         <ion-button expand="block" fill="outline" (click)="openSwap()" [disabled]="actionPending">Swap this meal</ion-button>
         <ion-button expand="block" fill="outline" (click)="showExtra = true" [disabled]="actionPending">Add an extra to shopping list</ion-button>
-        <ion-button expand="block" (click)="requestCook()" [disabled]="!preflight?.can_cook_from_pantry || actionPending">
+        <ion-button expand="block" (click)="requestCook()" [disabled]="actionPending">
           {{ actionPending ? 'Updating…' : 'Cook & deduct pantry' }}
         </ion-button>
-        <ion-note color="medium" class="action-help" *ngIf="preflight && !preflight.can_cook_from_pantry">Cooking is disabled until missing quantities are resolved. You can shop, update the pantry, or explicitly record that this meal was cooked without a pantry change.</ion-note>
+        <ion-note [color]="preflight?.can_cook_from_pantry ? 'success' : 'warning'" class="action-help" *ngIf="preflight">{{ pantryReadinessMessage }} You can shop, update the pantry, or explicitly record that this meal was cooked without a pantry change.</ion-note>
         <ion-button expand="block" fill="outline" (click)="addShortagesToList()" [disabled]="(!preflight?.ingredients_by_status?.low_stock?.length && !preflight?.ingredients_by_status?.missing?.length) || addingToList || actionPending">
           {{ addingToList ? 'Adding to shopping list…' : 'Add shortages to shopping list' }}
         </ion-button>

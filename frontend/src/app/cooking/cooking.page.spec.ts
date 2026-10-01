@@ -59,4 +59,41 @@ describe('CookingPage', () => {
     expect(progress.clear).toHaveBeenCalledWith(7, 42);
     expect(router.navigate).toHaveBeenCalledWith(['/tabs/dashboard'], jasmine.objectContaining({ replaceUrl: true }));
   });
+
+  it('counts the kitchen timer upward from zero and pauses at its target', () => {
+    jasmine.clock().install();
+    component.timerMinutes = 1;
+
+    component.startTimer();
+    expect(component.timerLabel).toBe('0:00');
+    jasmine.clock().tick(2000);
+
+    expect(component.timerLabel).toBe('0:02');
+    expect(component.timerRunning).toBeTrue();
+    jasmine.clock().tick(58000);
+
+    expect(component.timerLabel).toBe('1:00');
+    expect(component.timerRunning).toBeFalse();
+    jasmine.clock().uninstall();
+  });
+
+  it('explains which pantry ingredients block deduction', () => {
+    component.preflight = {
+      ...preflight,
+      can_cook_from_pantry: false,
+      ingredients_by_status: {
+        ready: [],
+        low_stock: [{ name: 'Chicken', status: 'low_stock', available: true, sufficient: false, missing_quantity: 1 }],
+        missing: [{ name: 'Ginger', status: 'missing', available: false, sufficient: false }],
+        needs_review: [{ name: 'Water', status: 'needs_review', available: true, sufficient: false }],
+      },
+    };
+
+    component.requestFinishWithPantryDeduction();
+
+    expect(component.confirmingCook).toBeFalse();
+    expect(component.message).toContain('Chicken needs 1');
+    expect(component.message).toContain('Ginger is missing');
+    expect(component.message).toContain('Water needs review');
+  });
 });

@@ -20,6 +20,13 @@ class ShoppingListController extends Controller
         return response()->json($this->visibleTo($request)->get());
     }
 
+    public function destroyPurchased(Request $request)
+    {
+        $deleted = $this->visibleTo($request)->where('is_purchased', true)->delete();
+
+        return response()->json(['deleted' => $deleted, 'message' => $deleted ? "Deleted {$deleted} bought item".($deleted === 1 ? '' : 's').'.' : 'There are no bought items to delete.']);
+    }
+
     public function store(Request $request)
     {
         $data = $this->data($request);
