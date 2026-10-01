@@ -3,27 +3,20 @@
 The visual ERD is retained as [capstone erd.jpg](../capstone%20erd.jpg). This source-level ERD records the Phase 6 deliverable schema and is easier to review alongside migrations.
 
 ```mermaid
-%%{init: {'theme': 'base', 'themeVariables': { 'fontSize': '14px', 'lineColor': '#334155', 'primaryTextColor': '#0f172a', 'primaryBorderColor': '#475569', 'tertiaryColor': '#f8fafc' }}}%%
 erDiagram
     USERS {
         bigint id PK
         varchar name
         varchar email UK
-        timestamp email_verified_at
         varchar password
-        timestamp created_at
-        timestamp updated_at
     }
 
     PROFILES {
         bigint id PK
-        bigint user_id FK, UK
+        bigint user_id FK
         json health_conditions
         json allergies
         json dietary_restrictions
-        json likes
-        json dislikes
-        json visible_to_family
     }
 
     FAMILIES {
@@ -39,84 +32,61 @@ erDiagram
         bigint user_id FK
         varchar role
         varchar status
-        bigint invited_by_user_id FK
     }
 
     HOUSEHOLD_PROFILES {
         bigint id PK
         bigint family_id FK
-        bigint user_id FK, nullable
+        bigint user_id FK
         varchar name
         varchar relation
         varchar sex
         date birth_date
-        decimal height_cm
-        decimal weight_kg
-        varchar activity_level
-        varchar goal
-        json health_conditions
-        json allergies
-        json dietary_restrictions
     }
 
     RECIPES {
         bigint id PK
-        bigint created_by FK, nullable
+        bigint created_by FK
         varchar name
         text description
         longtext instructions
-        text cooking_tips
-        varchar region
-        int prep_time
-        int cook_time
-        int servings
         varchar meal_type
-        varchar difficulty
-        varchar image
+        int servings
         decimal calories
-        decimal protein
-        decimal carbs
-        decimal fat
     }
 
     INGREDIENTS {
         bigint id PK
         bigint recipe_id FK
-        bigint nutrition_food_id FK, nullable
+        bigint nutrition_food_id FK
         varchar name
         varchar quantity
         varchar unit
-        decimal nutrition_grams
-        boolean is_substitute
     }
 
     NUTRITION_FOODS {
         bigint id PK
-        bigint fdc_id UK, nullable
+        bigint fdc_id UK
         varchar description
         varchar normalized_name
         varchar source
-        json nutrients
     }
 
     PANTRY_ITEMS {
         bigint id PK
         bigint user_id FK
-        bigint family_id FK, nullable
+        bigint family_id FK
         varchar name
         varchar quantity
-        decimal quantity_value
         varchar unit
-        date purchase_date
         date expiry_date
         varchar freshness_status
-        boolean is_expiry_estimated
     }
 
     SHOPPING_LISTS {
         bigint id PK
         bigint user_id FK
-        bigint family_id FK, nullable
+        bigint family_id FK
         varchar ingredient_name
         varchar quantity
         varchar unit
@@ -126,7 +96,7 @@ erDiagram
     MEAL_PLAN_BATCHES {
         bigint id PK
         bigint user_id FK
-        bigint family_id FK, nullable
+        bigint family_id FK
         date start_date
         date end_date
         varchar status
@@ -135,13 +105,12 @@ erDiagram
     MEAL_PLANS {
         bigint id PK
         bigint user_id FK
-        bigint family_id FK, nullable
+        bigint family_id FK
         bigint recipe_id FK
-        bigint meal_plan_batch_id FK, nullable
+        bigint meal_plan_batch_id FK
         date planned_date
         varchar meal_type
         smallint servings
-        json diner_profile_ids
         varchar status
     }
 
@@ -162,7 +131,7 @@ erDiagram
     MEAL_HISTORY {
         bigint id PK
         bigint user_id FK
-        bigint family_id FK, nullable
+        bigint family_id FK
         bigint recipe_id FK
         date prepared_at
         int servings
@@ -172,7 +141,7 @@ erDiagram
     INGREDIENT_PACKAGE_CONVERSIONS {
         bigint id PK
         bigint user_id FK
-        bigint family_id FK, nullable
+        bigint family_id FK
         varchar ingredient_name
         varchar package_unit
         decimal amount_per_package
@@ -182,12 +151,11 @@ erDiagram
     INGREDIENT_CATALOG {
         bigint id PK
         varchar canonical_name UK
-        json aliases
         varchar category
         boolean is_approved
     }
 
-    USERS ||--|| PROFILES : has one profile
+    USERS ||--|| PROFILES : has
     USERS ||--o{ FAMILIES : owns
     USERS ||--o{ FAMILY_MEMBERS : joins
     FAMILIES ||--o{ FAMILY_MEMBERS : includes
@@ -220,4 +188,4 @@ erDiagram
     INGREDIENT_CATALOG ||--o{ INGREDIENT_PACKAGE_CONVERSIONS : reference
 ```
 
-This version keeps the same schema truth but reduces visual noise so it fits better in a research document or presentation page.
+This version keeps the database structure accurate while making the layout easier to read in a document or slide.
