@@ -97,7 +97,7 @@ export class RecipesPage implements OnDestroy {
       error: () => this.message = 'Could not update favorites.',
     });
   }
-  recipeImage(recipe: Recommendation): string { return recipe.recipe.image || 'assets/shapes.svg'; }
+  recipeImage(recipe: Recommendation): string { return recipe.recipe.image_url || 'assets/shapes.svg'; }
   useFallbackImage(event: Event): void { (event.target as HTMLImageElement).src = 'assets/shapes.svg'; }
   openPackageConfirmation(ingredient: RecipeIngredient): void { const item = ingredient.package_items?.[0]; if (!item) return; this.confirmingIngredient = ingredient; this.confirmingPackage = item; this.packageAmount = undefined; this.packageUnit = ingredient.unit || 'g'; }
   closePackageConfirmation(): void { this.confirmingIngredient = undefined; this.confirmingPackage = undefined; }

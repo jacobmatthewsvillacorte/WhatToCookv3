@@ -65,11 +65,6 @@ class AdminRecipeManagementTest extends TestCase
             'quantity' => '500',
             'unit' => 'g',
         ]);
-        $this->assertDatabaseHas('recipes', [
-            'id' => $recipe->id,
-            'image_source_url' => 'https://images.example.test/adobo',
-            'image_attribution' => 'WhatToCook test photographer (CC BY 4.0)',
-        ]);
     }
 
     public function test_an_admin_can_update_and_delete_a_recipe_created_by_someone_else(): void
@@ -226,9 +221,6 @@ class AdminRecipeManagementTest extends TestCase
             'prep_time' => 15,
             'cook_time' => 35,
             'servings' => 4,
-            'image' => 'https://example.test/chicken-adobo.jpg',
-            'image_source_url' => 'https://images.example.test/adobo',
-            'image_attribution' => 'WhatToCook test photographer (CC BY 4.0)',
             'calories' => 420,
             'protein' => 31,
             'carbs' => 8,

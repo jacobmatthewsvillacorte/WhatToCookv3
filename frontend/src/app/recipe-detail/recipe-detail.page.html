@@ -15,7 +15,6 @@
           <p class="recipe-hero__description" *ngIf="recipe.description">{{ recipe.description }}</p>
           <div class="hero-meta"><span><ion-icon name="time-outline" aria-hidden="true"></ion-icon>{{ totalTime }} min</span><span><ion-icon name="people-outline" aria-hidden="true"></ion-icon>{{ recipe.servings || 2 }} servings</span><span *ngIf="recipe.difficulty"><ion-icon name="flame-outline" aria-hidden="true"></ion-icon>{{ recipe.difficulty }}</span></div>
         </div>
-        <p *ngIf="recipe.image_attribution" class="attribution">Image: <a *ngIf="recipe.image_source_url; else plainAttribution" [href]="recipe.image_source_url" target="_blank" rel="noopener">{{ recipe.image_attribution }}</a><ng-template #plainAttribution>{{ recipe.image_attribution }}</ng-template></p>
       </section>
 
       <section class="servings-control wtc-card" aria-label="Serving size"><div><p class="wtc-eyebrow">Adjust recipe</p><h2>How many are you serving?</h2></div><ion-item lines="none"><ion-input aria-label="Servings" type="number" min="1" [(ngModel)]="servings"></ion-input><ion-note slot="end">servings</ion-note></ion-item></section>

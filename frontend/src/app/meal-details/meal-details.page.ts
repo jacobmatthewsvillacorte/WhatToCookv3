@@ -53,6 +53,9 @@ export class MealDetailsPage {
     return !!this.plan?.completed_at;
   }
 
+  recipeImage(): string { return this.plan?.recipe?.image_url || 'assets/shapes.svg'; }
+  useFallbackImage(event: Event): void { (event.target as HTMLImageElement).src = 'assets/shapes.svg'; }
+
   get ingredientChecks(): MealPlanIngredientCheck[] {
     return [...(this.preflight?.ingredients || [])]
       .sort((left, right) => Number(left.sufficient) - Number(right.sufficient) || left.name.localeCompare(right.name));

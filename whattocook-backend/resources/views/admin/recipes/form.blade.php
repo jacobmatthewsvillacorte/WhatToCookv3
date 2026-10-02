@@ -5,7 +5,7 @@
     }
 @endphp
 
-<form class="card" method="POST" action="{{ $action }}">
+<form class="card" method="POST" action="{{ $action }}" enctype="multipart/form-data">
     @csrf
     @if ($method !== 'POST')
         @method($method)
@@ -58,21 +58,10 @@
             @error('servings') <p class="error-text">{{ $message }}</p> @enderror
         </div>
         <div class="field">
-            <label for="image">Image URL</label>
-            <input id="image" name="image" type="url" value="{{ old('image', $recipe->image) }}" placeholder="https://example.com/recipe.jpg">
-            <p class="help">Use an image you own or have permission to use.</p>
-            @error('image') <p class="error-text">{{ $message }}</p> @enderror
-        </div>
-        <div class="field">
-            <label for="image_source_url">Image source URL</label>
-            <input id="image_source_url" name="image_source_url" type="url" value="{{ old('image_source_url', $recipe->image_source_url) }}" placeholder="https://source.example/photo">
-            <p class="help">Required with attribution, so editors can verify image rights.</p>
-            @error('image_source_url') <p class="error-text">{{ $message }}</p> @enderror
-        </div>
-        <div class="field">
-            <label for="image_attribution">Image attribution / licence</label>
-            <input id="image_attribution" name="image_attribution" value="{{ old('image_attribution', $recipe->image_attribution) }}" placeholder="Photographer, source, and licence">
-            @error('image_attribution') <p class="error-text">{{ $message }}</p> @enderror
+            <label for="image_file">Upload recipe image</label>
+            <input id="image_file" name="image_file" type="file" accept="image/jpeg,image/png,image/webp">
+            <p class="help">JPEG, PNG, or WebP; maximum 5 MB. Uploaded files are stored outside source control.</p>
+            @error('image_file') <p class="error-text">{{ $message }}</p> @enderror
         </div>
         <div class="field full">
             <label for="description">Description</label>

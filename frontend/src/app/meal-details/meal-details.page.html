@@ -15,6 +15,7 @@
 
     <ng-container *ngIf="!loading && plan">
       <ion-card>
+        <img class="meal-image" [src]="recipeImage()" [alt]="plan.recipe?.name || 'Planned meal'" (error)="useFallbackImage($event)">
         <ion-card-header>
           <ion-card-subtitle>{{ dateLabel(plan.planned_date) }} · {{ mealTypeLabel(plan.meal_type) }}</ion-card-subtitle>
           <ion-card-title>{{ plan.recipe?.name || 'Planned meal' }}</ion-card-title>

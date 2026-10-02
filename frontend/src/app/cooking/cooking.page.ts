@@ -59,6 +59,8 @@ export class CookingPage {
   get progressValue(): number { return this.steps.length ? (this.stepIndex + 1) / this.steps.length : 0; }
   get progressLabel(): string { return this.steps.length ? `Step ${this.stepIndex + 1} of ${this.steps.length}` : 'No steps available'; }
   get totalTime(): number { return (this.preflight?.recipe.prep_time || 0) + (this.preflight?.recipe.cook_time || 0); }
+  recipeImage(): string { return this.preflight?.recipe.image_url || 'assets/shapes.svg'; }
+  useFallbackImage(event: Event): void { (event.target as HTMLImageElement).src = 'assets/shapes.svg'; }
   get checkedIngredientCount(): number { return this.ingredientChecks.filter(Boolean).length; }
   get notReadyIngredients() { return this.preflight?.ingredients_by_status.low_stock.concat(this.preflight.ingredients_by_status.missing, this.preflight.ingredients_by_status.needs_review) || []; }
   get pantryReadinessMessage(): string {

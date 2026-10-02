@@ -43,7 +43,7 @@ export class FavoritesPage {
   }
 
   image(recipe: RecipeDetail): string {
-    return recipe.image || 'assets/shapes.svg';
+    return recipe.image_url || 'assets/shapes.svg';
   }
 
   fallback(event: Event): void {

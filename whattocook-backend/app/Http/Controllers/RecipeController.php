@@ -13,6 +13,7 @@ use App\Services\UsdaFoodDataService;
 use App\Services\FoodSafetyTaxonomy;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Storage;
 
 class RecipeController extends Controller
 {
@@ -206,6 +207,21 @@ class RecipeController extends Controller
         return response()->json($recipe->load('ingredients'));
     }
 
+    public function uploadImage(Request $request, Recipe $recipe)
+    {
+        abort_unless($recipe->created_by === $request->user()->id, 403);
+
+        $data = $request->validate([
+            'image' => ['required', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
+        ]);
+
+        $oldImage = $recipe->image;
+        $recipe->update(['image' => $data['image']->store('recipes', 'public')]);
+        $this->deleteStoredImage($oldImage);
+
+        return response()->json($recipe->fresh()->load('ingredients'));
+    }
+
     public function destroy(Request $request, Recipe $recipe)
     {
         abort_unless($recipe->created_by === $request->user()->id, 403);
@@ -221,11 +237,17 @@ class RecipeController extends Controller
         return $request->validate([
             'name' => $prefix.'string|max:255', 'description' => 'nullable|string', 'instructions' => ($partial ? 'sometimes|' : 'required|').'string', 'cooking_tips' => 'nullable|string', 'region' => 'nullable|string|max:255',
             'prep_time' => 'nullable|integer|min:0', 'cook_time' => 'nullable|integer|min:0', 'servings' => 'nullable|integer|min:1',
-            'meal_type' => 'nullable|string|max:255', 'difficulty' => 'nullable|string|max:255', 'image' => 'nullable|string|max:2048',
-            'image_source_url' => 'nullable|url|max:2048', 'image_attribution' => 'nullable|string|max:500',
+            'meal_type' => 'nullable|string|max:255', 'difficulty' => 'nullable|string|max:255',
             'calories' => 'nullable|numeric|min:0', 'protein' => 'nullable|numeric|min:0', 'carbs' => 'nullable|numeric|min:0', 'fat' => 'nullable|numeric|min:0',
             'ingredients' => ($partial ? 'sometimes|' : 'required|').'array|min:1', 'ingredients.*.name' => 'required_with:ingredients|string|max:255',
             'ingredients.*.quantity' => 'nullable|string|max:255', 'ingredients.*.unit' => 'nullable|string|max:255', 'ingredients.*.nutrition_food_id' => 'nullable|integer|exists:nutrition_foods,id', 'ingredients.*.nutrition_grams' => 'nullable|numeric|gt:0|max:100000', 'ingredients.*.is_substitute' => 'nullable|boolean',
         ]);
+    }
+
+    private function deleteStoredImage(?string $image): void
+    {
+        if ($image && str_starts_with($image, 'recipes/')) {
+            Storage::disk('public')->delete($image);
+        }
     }
 }

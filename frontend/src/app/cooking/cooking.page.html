@@ -12,6 +12,7 @@
 
     <ng-container *ngIf="!loading && preflight">
       <section class="session-header" aria-label="Recipe and cooking progress">
+        <img class="cooking-image" [src]="recipeImage()" [alt]="preflight.recipe.name" (error)="useFallbackImage($event)">
         <p class="wtc-eyebrow">Now cooking</p>
         <h1>{{ preflight.recipe.name }}</h1>
         <div class="recipe-meta" *ngIf="totalTime || preflight.recipe.servings">

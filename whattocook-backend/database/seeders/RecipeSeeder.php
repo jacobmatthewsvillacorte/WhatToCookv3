@@ -358,6 +358,7 @@ class RecipeSeeder extends Seeder
         foreach ($recipes as $recipe) {
             $ingredients = $recipe['ingredients'];
             unset($recipe['ingredients']);
+            unset($recipe['image'], $recipe['image_source_url'], $recipe['image_attribution']);
 
             // This is intentionally an upsert, rather than firstOrCreate: the
             // array above is the reviewed catalogue and seeding must also apply

@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
@@ -99,12 +100,16 @@ class AdminRecipeController extends Controller
     public function update(Request $request, Recipe $recipe, UsdaFoodDataService $usda, RecipeNutritionService $nutrition): RedirectResponse
     {
         $data = $this->validated($request, $recipe);
+        $oldImage = $recipe->image;
 
         DB::transaction(function () use ($data, $recipe, $usda) {
             $recipe->update(collect($data)->except('ingredients')->all());
             $recipe->ingredients()->delete();
             $recipe->ingredients()->createMany($this->nutritionLinkedIngredients($data['ingredients'], $usda));
         });
+        if ($oldImage !== $recipe->image) {
+            $this->deleteStoredImage($oldImage);
+        }
         $nutrition->updateRecipeMacros($recipe->fresh());
 
         return redirect()->route('admin.recipes.edit', $recipe)
@@ -113,7 +118,9 @@ class AdminRecipeController extends Controller
 
     public function destroy(Recipe $recipe): RedirectResponse
     {
+        $image = $recipe->image;
         $recipe->delete();
+        $this->deleteStoredImage($image);
 
         return redirect()->route('admin.recipes.index')->with('success', 'Recipe deleted.');
     }
@@ -145,9 +152,7 @@ class AdminRecipeController extends Controller
             'servings' => ['nullable', 'integer', 'min:1'],
             'meal_type' => ['nullable', 'string', 'max:255'],
             'difficulty' => ['nullable', 'string', 'max:255'],
-            'image' => ['nullable', 'url', 'max:2048', 'required_with:image_source_url,image_attribution'],
-            'image_source_url' => ['nullable', 'url', 'max:2048', 'required_with:image_attribution'],
-            'image_attribution' => ['nullable', 'string', 'max:500', 'required_with:image_source_url'],
+            'image_file' => ['nullable', 'file', 'image', 'mimes:jpeg,jpg,png,webp', 'max:5120'],
             'calories' => ['nullable', 'numeric', 'min:0'],
             'protein' => ['nullable', 'numeric', 'min:0'],
             'carbs' => ['nullable', 'numeric', 'min:0'],
@@ -185,7 +190,23 @@ class AdminRecipeController extends Controller
         }
         unset($ingredient);
 
+        if ($request->hasFile('image_file')) {
+            $data['image'] = $request->file('image_file')->store('recipes', 'public');
+        } elseif ($recipe && str_starts_with((string) $recipe->image, 'recipes/')) {
+            $data['image'] = $recipe->image;
+        } else {
+            $data['image'] = null;
+        }
+        unset($data['image_file']);
+
         return $data;
+    }
+
+    private function deleteStoredImage(?string $image): void
+    {
+        if ($image && str_starts_with($image, 'recipes/')) {
+            Storage::disk('public')->delete($image);
+        }
     }
 
     private function nutritionLinkedIngredients(array $ingredients, UsdaFoodDataService $usda): array

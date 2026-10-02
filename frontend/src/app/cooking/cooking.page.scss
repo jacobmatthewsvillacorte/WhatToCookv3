@@ -1,5 +1,6 @@
 .cooking-page { display: grid; gap: var(--wtc-space-5); max-width: 46rem; padding-bottom: 6.5rem; }
 .session-header { display: grid; gap: var(--wtc-space-2); }
+.cooking-image { display: block; width: 100%; max-height: 14rem; object-fit: cover; aspect-ratio: 16 / 9; border-radius: var(--wtc-radius-lg); }
 .session-header h1, .session-header p, .progress-heading { margin: 0; }
 .recipe-meta { display: flex; flex-wrap: wrap; gap: var(--wtc-space-4); color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-sm); }
 .recipe-meta span { display: inline-flex; align-items: center; gap: var(--wtc-space-1); }

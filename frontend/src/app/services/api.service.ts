@@ -8,7 +8,7 @@ export interface PantryItem { id: number; name: string; quantity?: string; quant
 export interface PackageItem { id: number; name: string; quantity?: number | string; unit?: string; }
 export interface Family { id: number; name: string; owner_id: number; join_code?: string; owner?: { id: number; name: string }; members?: Array<{ id: number; user_id: number; role: string; user?: { id: number; name: string; email: string } }>; }
 export interface RecipeIngredient { name: string; quantity?: string; unit?: string; substitutes: string[]; needs_review?: boolean; pantry_units?: string[]; package_items?: PackageItem[]; }
-export interface RecipeSummary { id: number; name: string; description?: string; servings?: number; prep_time?: number; cook_time?: number; meal_type?: string; difficulty?: string; region?: string; image?: string | null; image_source_url?: string | null; image_attribution?: string | null; }
+export interface RecipeSummary { id: number; name: string; description?: string; servings?: number; prep_time?: number; cook_time?: number; meal_type?: string; difficulty?: string; region?: string; image?: string | null; image_url?: string | null; }
 export interface Recommendation { recipe: RecipeSummary; match_percentage: number; available_ingredients: RecipeIngredient[]; needs_review_ingredients?: RecipeIngredient[]; missing_ingredients: RecipeIngredient[]; }
 export interface RecipeSearchResponse { data: Recommendation[]; current_page: number; last_page: number; total: number; }
 export interface RecipeDetail extends RecipeSummary { instructions?: string; cooking_tips?: string; ingredients: RecipeIngredient[]; }
@@ -88,6 +88,7 @@ export class ApiService {
     return this.http.get<RecipeSearchResponse>(`${this.baseUrl}/recipes`, { ...this.options(), params });
   }
   recipe(recipeId: number): Observable<RecipeDetail> { return this.http.get<RecipeDetail>(`${this.baseUrl}/recipes/${recipeId}`, this.options()); }
+  uploadRecipeImage(recipeId: number, image: File): Observable<RecipeDetail> { const data = new FormData(); data.append('image', image); return this.http.post<RecipeDetail>(`${this.baseUrl}/recipes/${recipeId}/image`, data, this.options()); }
   recipeNutrition(recipeId: number): Observable<RecipeNutrition> { return this.http.get<RecipeNutrition>(`${this.baseUrl}/recipes/${recipeId}/nutrition`, this.options()); }
   addMissingToList(recipeId: number, familyId?: number): Observable<unknown> { return this.http.post(`${this.baseUrl}/recipes/${recipeId}/shopping-list`, familyId ? { family_id: familyId } : {}, this.options()); }
   mealPlans(familyId?: number, startDate?: string, endDate?: string): Observable<MealPlan[]> { const params: Record<string, string> = {}; if (familyId) params['family_id'] = String(familyId); if (startDate) params['start_date'] = startDate; if (endDate) params['end_date'] = endDate; return this.http.get<MealPlan[]>(`${this.baseUrl}/meal-plans`, { ...this.options(), params }); }

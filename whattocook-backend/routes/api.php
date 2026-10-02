@@ -58,6 +58,7 @@ Route::middleware(['throttle:api', 'auth:sanctum'])->group(function () {
     Route::get('/recipes/recommendations', [RecipeController::class, 'recommendations']);
     Route::get('/recipes/{recipe}/match', [RecipeController::class, 'match']);
     Route::get('/recipes/{recipe}/nutrition', [RecipeController::class, 'nutrition']);
+    Route::post('/recipes/{recipe}/image', [RecipeController::class, 'uploadImage']);
     Route::put('/recipes/{recipe}/ingredients/{ingredientId}/nutrition', [RecipeController::class, 'linkIngredientNutrition'])->whereNumber('ingredientId');
     Route::post('/recipes/{recipe}/shopping-list', [ShoppingListController::class, 'generate']);
     Route::apiResource('recipes', RecipeController::class);
