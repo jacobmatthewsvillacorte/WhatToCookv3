@@ -30,6 +30,33 @@ class ConfirmedPurchaseApiTest extends TestCase
         $this->assertDatabaseCount('pantry_items', 0);
     }
 
+    public function test_clear_shopping_list_deletes_bought_and_unbought_items_only_in_the_requested_scope(): void
+    {
+        $user = User::factory()->create();
+        $otherUser = User::factory()->create();
+        $family = $this->actingAs($user, 'sanctum')->postJson('/api/families', ['name' => 'Home'])->assertCreated()->json();
+
+        ShoppingList::create(['user_id' => $user->id, 'ingredient_name' => 'personal bought', 'is_purchased' => true]);
+        ShoppingList::create(['user_id' => $user->id, 'ingredient_name' => 'personal needed', 'is_purchased' => false]);
+        $familyBought = ShoppingList::create(['user_id' => $user->id, 'family_id' => $family['id'], 'ingredient_name' => 'family bought', 'is_purchased' => true]);
+        $familyNeeded = ShoppingList::create(['user_id' => $user->id, 'family_id' => $family['id'], 'ingredient_name' => 'family needed', 'is_purchased' => false]);
+        $otherUserItem = ShoppingList::create(['user_id' => $otherUser->id, 'ingredient_name' => 'other user item', 'is_purchased' => false]);
+
+        $this->actingAs($user, 'sanctum')->deleteJson('/api/shopping-list/clear')
+            ->assertOk()->assertJsonPath('deleted', 2);
+
+        $this->assertDatabaseHas('shopping_lists', ['id' => $familyBought->id]);
+        $this->assertDatabaseHas('shopping_lists', ['id' => $familyNeeded->id]);
+        $this->assertDatabaseHas('shopping_lists', ['id' => $otherUserItem->id]);
+
+        $this->actingAs($user, 'sanctum')->deleteJson("/api/shopping-list/clear?family_id={$family['id']}")
+            ->assertOk()->assertJsonPath('deleted', 2);
+
+        $this->assertDatabaseMissing('shopping_lists', ['id' => $familyBought->id]);
+        $this->assertDatabaseMissing('shopping_lists', ['id' => $familyNeeded->id]);
+        $this->assertDatabaseHas('shopping_lists', ['id' => $otherUserItem->id]);
+    }
+
     public function test_unpurchased_shopping_duplicates_use_canonical_aliases_and_normalised_units(): void
     {
         $user = User::factory()->create();

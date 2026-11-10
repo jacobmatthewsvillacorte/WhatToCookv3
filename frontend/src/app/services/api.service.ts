@@ -112,6 +112,7 @@ export class ApiService {
   updateShoppingItem(id: number, item: Partial<ShoppingListItem>): Observable<ShoppingListItem> { return this.http.put<ShoppingListItem>(`${this.baseUrl}/shopping-list/${id}`, item, this.options()); }
   confirmShoppingPurchase(id: number, purchase: ConfirmedPurchase): Observable<{ shopping_item: ShoppingListItem; pantry_item: PantryItem; message: string }> { return this.http.post<{ shopping_item: ShoppingListItem; pantry_item: PantryItem; message: string }>(`${this.baseUrl}/shopping-list/${id}/confirm-purchase`, purchase, this.options()); }
   deleteShoppingItem(id: number): Observable<unknown> { return this.http.delete(`${this.baseUrl}/shopping-list/${id}`, this.options()); }
+  clearShoppingList(familyId?: number): Observable<{ deleted: number; message: string }> { const params: Record<string, string> = familyId ? { family_id: String(familyId) } : {}; return this.http.delete<{ deleted: number; message: string }>(`${this.baseUrl}/shopping-list/clear`, { ...this.options(), params }); }
   mealHistory(): Observable<MealHistoryItem[]> { return this.http.get<MealHistoryItem[]>(`${this.baseUrl}/meal-history`, this.options()); }
   favoriteRecipe(recipeId: number): Observable<unknown> { return this.http.post(`${this.baseUrl}/recipes/${recipeId}/favorite`, {}, this.options()); }
   unfavoriteRecipe(recipeId: number): Observable<unknown> { return this.http.delete(`${this.baseUrl}/recipes/${recipeId}/favorite`, this.options()); }

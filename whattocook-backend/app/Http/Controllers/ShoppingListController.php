@@ -71,6 +71,26 @@ class ShoppingListController extends Controller
         return response()->noContent();
     }
 
+    public function destroyAll(Request $request)
+    {
+        $familyId = $request->validate(['family_id' => 'nullable|integer|exists:families,id'])['family_id'] ?? null;
+        $this->canUseFamily($request, $familyId);
+
+        $query = ShoppingList::query()->when(
+            $familyId === null,
+            fn ($items) => $items->where('user_id', $request->user()->id)->whereNull('family_id'),
+            fn ($items) => $items->where('family_id', $familyId),
+        );
+        $deleted = $query->delete();
+
+        return response()->json([
+            'deleted' => $deleted,
+            'message' => $deleted
+                ? "Deleted {$deleted} shopping list item".($deleted === 1 ? '' : 's').'.'
+                : 'There are no items to delete from this list.',
+        ]);
+    }
+
     public function generate(Request $request, Recipe $recipe, RecipeMatcher $matcher, ShoppingListAggregationService $shopping)
     {
         $familyId = $request->validate(['family_id' => 'nullable|integer|exists:families,id'])['family_id'] ?? null;

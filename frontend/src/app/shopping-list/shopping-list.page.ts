@@ -17,7 +17,9 @@ export class ShoppingListPage {
   loading = false;
   loadError = '';
   markingAll = false;
+  deletingAll = false;
   confirmMarkAll = false;
+  confirmDeleteAll = false;
   purchaseItem?: ShoppingListItem;
   purchase: ConfirmedPurchase = this.emptyPurchase();
   confirmingPurchase = false;
@@ -26,6 +28,10 @@ export class ShoppingListPage {
   readonly markAllAlertButtons = [
     { text: 'Cancel', role: 'cancel' },
     { text: 'Mark all bought', role: 'confirm', handler: () => this.markAllBought() },
+  ];
+  readonly deleteAllAlertButtons = [
+    { text: 'Cancel', role: 'cancel' },
+    { text: 'Delete items', role: 'destructive', handler: () => this.deleteAllItems() },
   ];
 
   constructor(private api: ApiService, private auth: AuthService, private context: HouseholdContextService, private exports: ExportService) {}
@@ -118,6 +124,24 @@ export class ShoppingListPage {
     forkJoin(remaining.map(item => this.api.updateShoppingItem(item.id, { is_purchased: true }))).subscribe({
       next: () => { this.markingAll = false; this.items = this.items.map(item => ({ ...item, is_purchased: item.is_purchased || remaining.some(selected => selected.id === item.id) })); },
       error: () => { this.markingAll = false; this.message = 'Could not mark all items as bought. Please try again.'; },
+    });
+  }
+
+  deleteAllItems(): void {
+    this.confirmDeleteAll = false;
+    if (!this.items.length || this.deletingAll) return;
+    this.deletingAll = true;
+    this.api.clearShoppingList(this.household?.id).subscribe({
+      next: result => {
+        this.items = [];
+        this.purchaseItem = undefined;
+        this.message = result.message;
+        this.deletingAll = false;
+      },
+      error: error => {
+        this.message = error?.error?.message || 'Could not delete shopping list items.';
+        this.deletingAll = false;
+      },
     });
   }
 

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\HouseholdProfile;
 use App\Models\PantryItem;
+use App\Models\Recipe;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -303,6 +304,46 @@ class PantryApiTest extends TestCase
 
         $this->actingAs($user, 'sanctum')->postJson("/api/recipes/{$recipe['id']}/shopping-list")
             ->assertCreated()->assertJsonPath('items.0.ingredient_name', 'Soy sauce');
+    }
+
+    public function test_recipe_matching_handles_rounded_fractions_and_compatible_volume_and_count_units(): void
+    {
+        $user = User::factory()->create();
+        PantryItem::create([
+            'user_id' => $user->id, 'name' => 'white vinegar', 'quantity' => '0.333',
+            'quantity_value' => 0.333, 'unit' => 'cup', 'freshness_status' => 'fresh',
+        ]);
+        PantryItem::create([
+            'user_id' => $user->id, 'name' => 'soy sauce', 'quantity' => '120',
+            'quantity_value' => 120, 'unit' => 'ml', 'freshness_status' => 'fresh',
+        ]);
+        PantryItem::create([
+            'user_id' => $user->id, 'name' => 'bay leaves', 'quantity' => '3',
+            'quantity_value' => 3, 'unit' => 'pieces', 'freshness_status' => 'fresh',
+        ]);
+        $recipe = Recipe::create(['name' => 'Adobong Manok', 'instructions' => 'Cook.']);
+        $recipe->ingredients()->create(['name' => 'white vinegar', 'quantity' => '1/3', 'unit' => 'cup']);
+        $recipe->ingredients()->create(['name' => 'soy sauce', 'quantity' => '1/2', 'unit' => 'cup']);
+        $recipe->ingredients()->create(['name' => 'bay leaves', 'quantity' => '3', 'unit' => 'pcs']);
+
+        $this->actingAs($user, 'sanctum')->getJson('/api/recipes/recommendations')
+            ->assertOk()
+            ->assertJsonPath('recommendations.0.match_percentage', 100)
+            ->assertJsonCount(3, 'recommendations.0.available_ingredients')
+            ->assertJsonCount(0, 'recommendations.0.missing_ingredients');
+
+        $mealPlan = $this->actingAs($user, 'sanctum')->postJson('/api/meal-plans', [
+            'recipe_id' => $recipe->id, 'planned_date' => today()->toDateString(), 'meal_type' => 'dinner', 'servings' => 1,
+        ])->assertCreated()->json();
+
+        $this->actingAs($user, 'sanctum')->getJson("/api/meal-plans/{$mealPlan['id']}/preflight")
+            ->assertOk()
+            ->assertJsonPath('can_cook_from_pantry', true)
+            ->assertJsonCount(3, 'ingredients_by_status.ready');
+
+        $this->actingAs($user, 'sanctum')->postJson("/api/meal-plans/{$mealPlan['id']}/complete")
+            ->assertOk()
+            ->assertJsonPath('meal_plan.completion_method', 'pantry_deducted');
     }
 
     public function test_recipe_matching_sums_stock_converts_units_and_reports_the_actual_deficit(): void

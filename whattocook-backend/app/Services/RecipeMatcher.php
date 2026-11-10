@@ -25,7 +25,7 @@ class RecipeMatcher
         $ingredients = $recipe->ingredients->map(function ($ingredient) use ($pantry, $scale) {
             $key = $this->normalise($ingredient->name);
             $required = ($this->number($ingredient->quantity) ?? null);
-            $required = $required === null ? null : $required * $scale;
+            $required = $required === null ? null : round($required * $scale, 3);
             $availability = $this->availabilityFor($ingredient->name, $ingredient->unit, $pantry);
             $hasStock = $availability['has_stock'];
             $inStock = $availability['quantity'];
@@ -208,6 +208,12 @@ class RecipeMatcher
         if (in_array($unit, ['ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters', 'l', 'litre', 'litres', 'liter', 'liters'], true)) {
             return 'volume';
         }
+        if (in_array($unit, ['cup', 'cups', 'c', 'tbsp', 'tablespoon', 'tablespoons', 'tsp', 'teaspoon', 'teaspoons'], true)) {
+            return 'volume';
+        }
+        if (in_array($unit, ['pc', 'pcs', 'piece', 'pieces', 'item', 'items'], true)) {
+            return 'count';
+        }
 
         return $unit;
     }
@@ -217,6 +223,9 @@ class RecipeMatcher
         return match ($this->normalise($unit)) {
             'kg', 'kilogram', 'kilograms', 'l', 'litre', 'litres', 'liter', 'liters' => 1000,
             'g', 'gram', 'grams', 'ml', 'millilitre', 'millilitres', 'milliliter', 'milliliters' => 1,
+            'cup', 'cups', 'c' => 240,
+            'tbsp', 'tablespoon', 'tablespoons' => 15,
+            'tsp', 'teaspoon', 'teaspoons' => 5,
             default => null,
         };
     }

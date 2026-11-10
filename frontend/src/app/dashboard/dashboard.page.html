@@ -95,9 +95,9 @@
               <span class="match-badge">{{ item.match_percentage }}% pantry match</span>
               <h3>{{ item.recipe.name }}</h3>
               <p><ion-icon name="time-outline"></ion-icon>{{ (item.recipe.prep_time || 0) + (item.recipe.cook_time || 0) }} min <i></i><ion-icon name="people-outline"></ion-icon>{{ item.recipe.servings || 2 }} servings</p>
-              <small *ngIf="item.missing_ingredients.length">Missing {{ item.missing_ingredients.length }} ingredient{{ item.missing_ingredients.length === 1 ? '' : 's' }}</small>
               <small class="ready" *ngIf="!item.missing_ingredients.length">Everything is in your pantry</small>
               <ion-button size="small" (click)="cookRecommendation($event, item)"><ion-icon name="restaurant-outline" slot="start"></ion-icon>Cook now</ion-button>
+              <small class="missing" *ngIf="item.missing_ingredients.length">Missing: <ng-container *ngFor="let ingredient of item.missing_ingredients; let last = last">{{ ingredient.name }}<span *ngIf="!last">, </span></ng-container></small>
             </div>
           </a>
         </div>

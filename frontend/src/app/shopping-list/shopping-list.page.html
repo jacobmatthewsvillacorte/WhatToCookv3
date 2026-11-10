@@ -21,7 +21,10 @@
 
     <section class="purchase-tools" *ngIf="!loading && !loadError && items.length">
       <ion-note>{{ remainingItems.length }} item{{ remainingItems.length === 1 ? '' : 's' }} remaining</ion-note>
-      <ion-button size="small" fill="outline" (click)="confirmMarkAll = true" [disabled]="!remainingItems.length || markingAll">{{ markingAll ? 'Updating…' : 'Mark all remaining bought' }}</ion-button>
+      <div class="purchase-actions">
+        <ion-button size="small" fill="outline" (click)="confirmMarkAll = true" [disabled]="!remainingItems.length || markingAll || deletingAll">{{ markingAll ? 'Updating…' : 'Mark all remaining bought' }}</ion-button>
+        <ion-button size="small" fill="outline" color="danger" (click)="confirmDeleteAll = true" [disabled]="deletingAll || markingAll">{{ deletingAll ? 'Deleting…' : 'Delete items' }}</ion-button>
+      </div>
     </section>
 
     <section class="export-tools" *ngIf="!loading && !loadError && items.length">
@@ -70,3 +73,4 @@
 </ion-content>
 
 <ion-alert [isOpen]="confirmMarkAll" header="Mark all remaining items as bought?" [message]="'This checks every remaining item in this ' + (household ? 'shared' : 'personal') + ' shopping list. You can uncheck an item afterwards if needed.'" [buttons]="markAllAlertButtons" (didDismiss)="confirmMarkAll = false"></ion-alert>
+<ion-alert [isOpen]="confirmDeleteAll" header="Delete all shopping items?" [message]="'This permanently deletes all ' + items.length + ' bought and unbought item' + (items.length === 1 ? '' : 's') + ' from this ' + (household ? 'shared' : 'personal') + ' list.'" [buttons]="deleteAllAlertButtons" (didDismiss)="confirmDeleteAll = false"></ion-alert>

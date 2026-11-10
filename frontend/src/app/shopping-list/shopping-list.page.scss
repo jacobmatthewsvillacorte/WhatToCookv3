@@ -3,6 +3,7 @@
 .message { color: var(--ion-color-danger); }
 .done { text-decoration: line-through; color: var(--wtc-color-text-muted); }
 .purchase-tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 16px 0 8px; }
+.purchase-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .export-tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 12px; }
-@media (max-width: 30rem) { .purchase-tools, .export-tools { align-items: stretch; flex-direction: column; } .purchase-tools ion-button { width: 100%; margin: 0; } .export-tools > div { display: flex; justify-content: space-between; } }
+@media (max-width: 30rem) { .purchase-tools, .export-tools { align-items: stretch; flex-direction: column; } .purchase-actions { flex-direction: column; } .purchase-tools ion-button { width: 100%; margin: 0; } .export-tools > div { display: flex; justify-content: space-between; } }
 @media (min-width: 52rem) { .shopping-page { max-width: 52rem; } .shopping-add-card ion-grid { max-width: 38rem; } }
