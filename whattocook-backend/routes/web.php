@@ -4,7 +4,13 @@ use App\Http\Controllers\AdminAuthController;
 use App\Http\Controllers\AdminRecipeController;
 use Illuminate\Support\Facades\Route;
 
-Route::redirect('/', '/admin/login');
+Route::get('/', function () {
+    return redirect()->route('admin.login');
+});
+
+Route::get('/login', function () {
+    return redirect()->route('admin.login');
+})->name('login');
 
 Route::middleware('guest')->group(function () {
     Route::get('/admin/login', [AdminAuthController::class, 'create'])->name('admin.login');
