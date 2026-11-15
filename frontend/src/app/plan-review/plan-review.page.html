@@ -59,7 +59,36 @@
           <ion-item *ngFor="let meal of meals" [button]="isDraft" [detail]="isDraft" (click)="openMealEditor(meal)">
             <ion-label>
               <p>{{ dateLabel(meal.planned_date) }} · {{ mealTypeLabel(meal.meal_type) }}</p>
-              <h2>{{ recipeName(meal) }}</h2>
+              <h2>{{ meal.meal_name || recipeName(meal) }}</h2>
+              <div class="carb-side" *ngIf="meal.carb_side; else legacyCarbInfo" (click)="$event.stopPropagation()">
+                <h3>Carb / Rice <ion-badge color="medium">Optional</ion-badge></h3>
+                <p>Default: {{ meal.carb_side.default }}</p>
+                <div class="carb-member" *ngFor="let option of meal.carb_side.per_member">
+                  <ion-label>
+                    <strong>{{ option.member }}:</strong> {{ option.carb }}
+                    <ion-badge color="success" *ngIf="option.diabetic_friendly">Diabetic-friendly</ion-badge>
+                    <p>{{ option.included === false ? 'Skipped' : 'Optional' }}</p>
+                  </ion-label>
+                  <ion-toggle slot="end" [checked]="option.included !== false" [disabled]="!isDraft" aria-label="Include optional carb for {{ option.member }}" (ionChange)="setMemberCarb(meal, option.member_profile_id, $event.detail.checked); $event.stopPropagation()"></ion-toggle>
+                </div>
+                <p *ngIf="meal.diabetic_friendly_note">{{ meal.diabetic_friendly_note }}</p>
+                <p *ngIf="meal.estimated_carbs"><small>Estimated carbohydrates: {{ meal.estimated_carbs }}</small></p>
+              </div>
+              <ng-template #legacyCarbInfo><p>No carb info available for this older meal plan.</p></ng-template>
+              <div *ngIf="meal.main_dish">
+                <h3>Main Dish</h3>
+                <strong>{{ meal.main_dish.name }}</strong>
+                <p *ngFor="let ingredient of meal.main_dish.ingredients">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</p>
+                <strong *ngIf="meal.main_dish.steps.length">Steps</strong>
+                <p *ngFor="let step of meal.main_dish.steps">{{ step }}</p>
+              </div>
+              <div *ngIf="meal.secondary_dish as secondary">
+                <h3>Secondary Dish</h3>
+                <strong>{{ secondary.name }}</strong> <small>({{ secondary.type }})</small>
+                <p *ngFor="let ingredient of secondary.ingredients">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</p>
+                <strong *ngIf="secondary.steps.length">Steps</strong>
+                <p *ngFor="let step of secondary.steps">{{ step }}</p>
+              </div>
               <p>{{ meal.servings }} serving{{ meal.servings === 1 ? '' : 's' }} · {{ dinerNames(meal) }}</p>
               <p *ngIf="meal.selection_reason?.length"><strong>Why this meal was chosen:</strong> {{ meal.selection_reason?.join(' ') }}</p>
               <ng-container *ngFor="let child of meal.child_meal_plan?.children">
@@ -106,6 +135,7 @@
         </ion-button>
         <ion-button expand="block" fill="clear" color="danger" (click)="discardPlan()" [disabled]="saving">Discard draft</ion-button>
       </section>
+      <ion-note color="medium" class="medical-disclaimer">{{ response.disclaimer || 'Consult a doctor or dietitian for specific dietary needs.' }}</ion-note>
     </ng-container>
   </main>
 </ion-content>
@@ -152,7 +182,24 @@
           </ion-label>
         </ion-item>
       </ion-list>
-      <ion-note color="medium">Allergy and diet checks run again before the change is accepted.</ion-note>
+      <ion-list inset="true" aria-label="Optional carbohydrate side">
+        <ion-list-header><ion-label>Carb / Rice (optional)</ion-label></ion-list-header>
+        <ion-item>
+          <ion-select label="Carb side" labelPlacement="stacked" [(ngModel)]="editor.carbChoice">
+            <ion-select-option value="white_rice">Steamed white rice</ion-select-option>
+            <ion-select-option value="brown_rice">Brown rice</ion-select-option>
+            <ion-select-option value="quinoa">Quinoa</ion-select-option>
+            <ion-select-option value="sweet_potato">Kamote</ion-select-option>
+            <ion-select-option value="potato">Potato</ion-select-option>
+            <ion-select-option value="corn">Corn</ion-select-option>
+          </ion-select>
+        </ion-item>
+        <ion-item>
+          <ion-checkbox slot="start" [(ngModel)]="editor.includeCarb"></ion-checkbox>
+          <ion-label>Include this side (you can skip it)</ion-label>
+        </ion-item>
+      </ion-list>
+      <ion-note color="medium">Carbohydrate needs vary. Choose or omit this side according to personal preference and any guidance from your health care professional. This app does not provide diabetes nutrition advice. Allergy and diet checks run again before the change is accepted.</ion-note>
       <ion-button expand="block" class="save-change" (click)="saveMealChange()" [disabled]="saving">{{ saving ? 'Saving…' : 'Save meal change' }}</ion-button>
     </ion-content>
   </ng-template>

@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { ApiService, HouseholdProfile, MealPlan, MealPlanIngredientCheck, MealPlanPreflight, Recommendation } from '../services/api.service';
+import { ApiService, CarbChoice, CARB_CHOICES, HouseholdProfile, MealPlan, MealPlanIngredientCheck, MealPlanPreflight, Recommendation } from '../services/api.service';
 
 @Component({
   selector: 'app-meal-details',
@@ -9,6 +9,7 @@ import { ApiService, HouseholdProfile, MealPlan, MealPlanIngredientCheck, MealPl
   standalone: false,
 })
 export class MealDetailsPage {
+  private readonly carbChoices = CARB_CHOICES;
   plan?: MealPlan;
   preflight?: MealPlanPreflight;
   diners: Array<Pick<HouseholdProfile, 'id' | 'name' | 'relation'>> = [];
@@ -64,6 +65,25 @@ export class MealDetailsPage {
       .filter(diner => (this.plan?.diner_profile_ids || []).includes(diner.id))
       .map(diner => diner.name);
     return names.length ? names.join(', ') : 'No diners selected';
+  }
+
+  setMemberCarb(profileId: number, included: boolean): void {
+    if (!this.plan?.carb_side || this.isCompleted || this.actionPending) return;
+    const carbSide = {
+      ...this.plan.carb_side,
+      per_member: this.plan.carb_side.per_member.map(option => option.member_profile_id === profileId ? { ...option, included } : option),
+    };
+    this.actionPending = true;
+    this.api.updateMealPlan(this.plan.id, { carb_side: carbSide }).subscribe({
+      next: updated => {
+        if (this.plan) this.plan = { ...this.plan, carb_side: updated.carb_side };
+        this.actionPending = false;
+      },
+      error: error => {
+        this.actionPending = false;
+        this.message = error?.error?.message || 'Could not update this carb choice.';
+      },
+    });
   }
 
   load(planId = this.plan?.id): void {
@@ -256,6 +276,10 @@ export class MealDetailsPage {
 
   mealTypeLabel(value?: string): string {
     return value ? `${value.charAt(0).toUpperCase()}${value.slice(1)}` : 'Meal';
+  }
+
+  carbLabel(choice?: CarbChoice): string {
+    return this.carbChoices.find(option => option.value === choice)?.label || 'White rice';
   }
 
   swapPantryLabel(item: Recommendation): string {

@@ -382,11 +382,52 @@ class MealPlanController extends Controller
             'recipe_id' => $p.'exists:recipes,id', 'planned_date' => $p.'date', 'meal_type' => $p.'string|in:breakfast,lunch,dinner',
             'family_id' => 'nullable|exists:families,id', 'servings' => ($partial ? 'sometimes|' : 'nullable|').'integer|min:1|max:100',
             'diner_profile_ids' => 'sometimes|nullable|array', 'diner_profile_ids.*' => 'integer|distinct',
+            'carb_choice' => 'sometimes|string|in:white_rice,brown_rice,quinoa,sweet_potato,potato,corn', 'include_carb' => 'sometimes|boolean',
+            'carb_side' => 'sometimes|array',
+            'carb_side.default' => 'required_with:carb_side|string|max:255',
+            'carb_side.optional' => 'required_with:carb_side|boolean',
+            'carb_side.per_member' => 'required_with:carb_side|array',
+            'carb_side.per_member.*.member_profile_id' => 'required|integer|exists:household_profiles,id',
+            'carb_side.per_member.*.member' => 'required|string|max:255',
+            'carb_side.per_member.*.carb' => 'required|string|max:500',
+            'carb_side.per_member.*.optional' => 'required|boolean',
+            'carb_side.per_member.*.diabetic_friendly' => 'required|boolean',
+            'carb_side.per_member.*.included' => 'sometimes|boolean',
         ]);
         $familyId = $data['family_id'] ?? $existing?->family_id;
         $this->canUseFamily($request, $familyId);
         if (array_key_exists('diner_profile_ids', $data)) {
             $data['diner_profile_ids'] = $this->validatedDiners($familyId, $data['diner_profile_ids'] ?? []);
+        }
+        $selectedDiners = $data['diner_profile_ids'] ?? $existing?->diner_profile_ids ?? [];
+        if ($familyId) {
+            $profiles = HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $selectedDiners)->get();
+            $carbSide = $this->carbSideForProfiles($profiles);
+            $previous = collect($existing?->carb_side['per_member'] ?? [])->keyBy('member_profile_id');
+            $requested = array_key_exists('carb_side', $data) ? collect($data['carb_side']['per_member'])->keyBy('member_profile_id') : collect();
+            if ($requested->keys()->diff($selectedDiners)->isNotEmpty()) {
+                throw ValidationException::withMessages(['carb_side' => ['Carb choices must belong to the selected diners.']]);
+            }
+            foreach ($carbSide['per_member'] as &$memberOption) {
+                $requestedOption = $requested[$memberOption['member_profile_id']] ?? null;
+                $previousOption = $previous[$memberOption['member_profile_id']] ?? null;
+                if (isset($requestedOption['included'])) {
+                    $memberOption['included'] = $requestedOption['included'];
+                } elseif (isset($previousOption['included'])) {
+                    $memberOption['included'] = $previousOption['included'];
+                }
+            }
+            unset($memberOption);
+            $data['carb_side'] = $carbSide;
+            if (array_key_exists('recipe_id', $data) || ! $existing?->estimated_carbs) {
+                $selectedRecipe = Recipe::find($data['recipe_id'] ?? $existing?->recipe_id);
+                $data['estimated_carbs'] = $selectedRecipe?->carbs === null
+                    ? 'Unavailable from current recipe nutrition data; selected carb side is not included.'
+                    : 'Main dish estimate: about '.$selectedRecipe->carbs.' g per serving; selected carb side is not included.';
+            }
+            $data['diabetic_friendly_note'] = $this->hasLowSugarDiner($profiles)
+                ? 'Meals are filtered to avoid obvious sugary ingredients. Carb suggestions are general options, not medical advice; follow your care team’s guidance.'
+                : null;
         }
         // Changing a shared meal's date or diners can change its child-safety
         // and dietary eligibility even when the recipe itself is unchanged.
@@ -560,7 +601,56 @@ class MealPlanController extends Controller
         return Recipe::with('ingredients')->get()
             ->filter(fn (Recipe $recipe) => $this->foodSafety->recipeIsSafe($recipe, $profiles))
             ->filter(fn (Recipe $recipe) => ! $hasYoungChild || ! $this->hasYoungChildConflict($recipe))
+            ->filter(fn (Recipe $recipe) => ! $familyId || $this->hasProteinAndVegetables($recipe))
+            ->filter(fn (Recipe $recipe) => ! $familyId || ! $this->hasLowSugarDiner($profiles) || ! $this->hasSugaryItems($recipe))
             ->values();
+    }
+
+    private function carbSideForProfiles($profiles): array
+    {
+        return [
+            'default' => '1 cup steamed rice',
+            'optional' => true,
+            'per_member' => $profiles->map(function (HouseholdProfile $profile) {
+                $restricted = $this->isLowSugarProfile($profile);
+                return [
+                    'member_profile_id' => $profile->id,
+                    'member' => $profile->name,
+                    'carb' => $restricted ? '1/2 cup brown rice, kamote, corn, cauliflower rice, or skip and add extra vegetables' : '1 cup steamed rice (or kamote, saba banana, corn, potato, pandesal, or noodles)',
+                    'optional' => true,
+                    'diabetic_friendly' => $restricted,
+                    'included' => true,
+                ];
+            })->values()->all(),
+        ];
+    }
+
+    private function hasLowSugarDiner($profiles): bool
+    {
+        return $profiles->contains(fn (HouseholdProfile $profile) => $this->isLowSugarProfile($profile));
+    }
+
+    private function isLowSugarProfile(HouseholdProfile $profile): bool
+    {
+        $legacy = collect($profile->health_conditions ?? [])->map(fn ($value) => strtolower((string) $value));
+        return in_array($profile->health_condition, ['diabetic', 'low_sugar'], true)
+            || $legacy->contains(fn ($value) => str_contains($value, 'diabet') || str_contains($value, 'low sugar'));
+    }
+
+    private function hasProteinAndVegetables(Recipe $recipe): bool
+    {
+        $names = $recipe->ingredients->pluck('name')->map(fn ($name) => strtolower((string) $name));
+        $protein = $names->contains(fn ($name) => preg_match('/chicken|pork|beef|oxtail|fish|bangus|tilapia|salmon|tuna|shrimp|egg|tofu|beans|mung|lentil/', $name));
+        $vegetable = $names->contains(fn ($name) => preg_match('/kangkong|spinach|papaya|radish|labanos|eggplant|string beans|green beans|tomato|carrot|cabbage|cauliflower|snow peas|squash|malunggay|taro leaves|broccoli|ampalaya|pechay|bok choy|okra|chayote|sayote|upo/', $name));
+        $stapleCarb = $names->contains(fn ($name) => preg_match('/\brace\b|noodle|pasta|pandesal|bread|potato|corn|sweet potato|\bbanana\b(?! blossom)/', $name));
+        return $protein && $vegetable && ! $stapleCarb;
+    }
+
+    private function hasSugaryItems(Recipe $recipe): bool
+    {
+        return $recipe->ingredients->pluck('name')->push($recipe->name)->contains(
+            fn ($name) => preg_match('/(?<!free )\b(sugar|honey|syrup|sweetened|condensed milk|soft drink|soda|dessert|cake|candy|sweet and sour|sweet chili|teriyaki|ketchup|barbecue sauce|bbq sauce)\b/i', (string) $name),
+        );
     }
 
     private function hasYoungChildConflict(Recipe $recipe): bool

@@ -2,6 +2,7 @@ import { Component } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import {
   ApiService,
+  CarbChoice,
   HouseholdProfile,
   MealPlan,
   MealPlanBatchResponse,
@@ -21,6 +22,8 @@ interface MealEditor {
   mealType: MealType;
   servings: number;
   dinerIds: number[];
+  carbChoice: CarbChoice;
+  includeCarb: boolean;
 }
 
 interface PurchasedItemDraft {
@@ -144,6 +147,8 @@ export class PlanReviewPage {
       mealType: meal.meal_type as MealType,
       servings: meal.servings || 1,
       dinerIds: [...(meal.diner_profile_ids || [])],
+      carbChoice: meal.carb_choice || 'white_rice',
+      includeCarb: meal.include_carb ?? true,
     };
   }
 
@@ -187,6 +192,8 @@ export class PlanReviewPage {
       planned_date: this.editor.plannedDate,
       meal_type: this.editor.mealType,
       servings: Number(this.editor.servings),
+      carb_choice: this.editor.carbChoice,
+      include_carb: this.editor.includeCarb,
       ...(this.isFamilyPlan ? { diner_profile_ids: this.editor.dinerIds } : {}),
     }).subscribe({
       next: response => {
@@ -198,6 +205,18 @@ export class PlanReviewPage {
         this.saving = false;
         this.editorMessage = this.errorMessage(error, 'Could not update this meal.');
       },
+    });
+  }
+
+  setMemberCarb(meal: MealPlan, profileId: number, included: boolean): void {
+    if (!this.batchId || !meal.carb_side) return;
+    const carbSide = {
+      ...meal.carb_side,
+      per_member: meal.carb_side.per_member.map(option => option.member_profile_id === profileId ? { ...option, included } : option),
+    };
+    this.api.updateMealPlanBatchMeal(this.batchId, meal.id, { carb_side: carbSide }).subscribe({
+      next: response => this.applyResponse(response),
+      error: error => this.message = this.errorMessage(error, 'Could not update this carb choice.'),
     });
   }
 
@@ -335,6 +354,7 @@ export class PlanReviewPage {
   mealTypeLabel(type: string): string {
     return type ? `${type.charAt(0).toUpperCase()}${type.slice(1)}` : 'Meal';
   }
+
 
   dateLabel(date: string): string {
     const parsed = new Date(`${date.slice(0, 10)}T12:00:00`);

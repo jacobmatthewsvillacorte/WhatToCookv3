@@ -12,6 +12,7 @@ class HouseholdProfileController extends Controller
 {
     private const PRIVATE_FIELDS = [
         'health_conditions',
+        'health_condition',
         'allergies',
         'dietary_restrictions',
         'likes',
@@ -105,6 +106,7 @@ class HouseholdProfileController extends Controller
             'weight_kg' => ['sometimes', 'nullable', 'numeric', 'min:0', 'max:999.99'],
             'activity_level' => ['sometimes', 'nullable', 'string', 'max:100'],
             'goal' => ['sometimes', 'nullable', 'string', 'max:255'],
+            'health_condition' => ['sometimes', 'nullable', 'string', 'in:none,diabetic,low_sugar'],
             'health_conditions' => ['sometimes', 'nullable', 'array'],
             'health_conditions.*' => ['nullable', 'string', 'max:255'],
             'allergies' => ['sometimes', 'nullable', 'array'],
@@ -117,6 +119,7 @@ class HouseholdProfileController extends Controller
             'dislikes.*' => ['nullable', 'string', 'max:255'],
             'visible_to_family' => ['sometimes', 'nullable', 'array'],
             'visible_to_family.health_conditions' => ['sometimes', 'boolean'],
+            'visible_to_family.health_condition' => ['sometimes', 'boolean'],
             'visible_to_family.allergies' => ['sometimes', 'boolean'],
             'visible_to_family.dietary_restrictions' => ['sometimes', 'boolean'],
             'visible_to_family.likes' => ['sometimes', 'boolean'],

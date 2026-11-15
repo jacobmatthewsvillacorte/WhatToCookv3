@@ -20,6 +20,7 @@ class HouseholdProfile extends Model
         'weight_kg',
         'activity_level',
         'goal',
+        'health_condition',
         'health_conditions',
         'allergies',
         'dietary_restrictions',
@@ -30,7 +31,8 @@ class HouseholdProfile extends Model
 
     /** Sensitive dietary and health fields are private unless explicitly shared. */
     protected $attributes = [
-        'visible_to_family' => '{"health_conditions":false,"allergies":false,"dietary_restrictions":false,"likes":false,"dislikes":false}',
+        'health_condition' => 'none',
+        'visible_to_family' => '{"health_condition":false,"health_conditions":false,"allergies":false,"dietary_restrictions":false,"likes":false,"dislikes":false}',
     ];
 
     protected function casts(): array

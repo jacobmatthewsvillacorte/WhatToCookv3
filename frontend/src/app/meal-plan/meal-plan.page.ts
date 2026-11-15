@@ -3,16 +3,17 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { ToastController } from '@ionic/angular';
 import { forkJoin, of, Subscription } from 'rxjs';
 import { catchError, finalize, switchMap } from 'rxjs/operators';
-import { ApiService, Family, HouseholdProfile, MealPlan, Recommendation } from '../services/api.service';
+import { ApiService, CarbChoice, CARB_CHOICES, Family, HouseholdProfile, MealPlan, Recommendation, SecondaryDish } from '../services/api.service';
 import { AuthService } from '../services/auth.service';
 import { HouseholdContextService } from '../services/household-context.service';
 
 type MealType = 'Breakfast' | 'Lunch' | 'Dinner';
-interface PlannerDraft { date: string; mealType: MealType; recipeId: number | null; servings: number; dinerIds: number[]; planId?: number; }
+interface PlannerDraft { date: string; mealType: MealType; recipeId: number | null; servings: number; dinerIds: number[]; planId?: number; carbChoice: CarbChoice; includeCarb: boolean; secondaryDish?: SecondaryDish | null; }
 
 @Component({ selector: 'app-meal-plan', templateUrl: './meal-plan.page.html', styleUrls: ['./meal-plan.page.scss'], standalone: false })
 export class MealPlanPage implements OnDestroy {
   readonly mealTypes: MealType[] = ['Breakfast', 'Lunch', 'Dinner'];
+  readonly carbChoices = CARB_CHOICES;
   days: Date[] = [];
   selectedDay?: Date;
   showAllPlannedDays = false;
@@ -129,12 +130,13 @@ export class MealPlanPage implements OnDestroy {
       return;
     }
     this.rememberModalReturnFocus();
-    this.draft = { date: this.dateOnly(day), mealType, planId: plan?.id, recipeId: plan?.recipe_id || null, servings: plan?.servings || plan?.recipe?.servings || Math.max(this.diners.length, 1), dinerIds: plan?.diner_profile_ids || this.diners.map(diner => diner.id) };
+    this.draft = { date: this.dateOnly(day), mealType, planId: plan?.id, recipeId: plan?.recipe_id || null, servings: plan?.servings || plan?.recipe?.servings || Math.max(this.diners.length, 1), dinerIds: plan?.diner_profile_ids || this.diners.map(diner => diner.id), carbChoice: plan?.carb_choice || 'white_rice', includeCarb: plan?.include_carb ?? true, secondaryDish: plan?.secondary_dish };
   }
   closeEditor(): void { this.draft = undefined; }
   onEditorDidDismiss(): void { this.closeEditor(); this.restoreModalFocus(); }
   toggleDiner(id: number): void { if (!this.draft) return; this.draft.dinerIds = this.draft.dinerIds.includes(id) ? this.draft.dinerIds.filter(dinerId => dinerId !== id) : [...this.draft.dinerIds, id]; if (this.draft.dinerIds.length) this.draft.servings = Math.max(this.draft.servings, this.draft.dinerIds.length); }
   recipeName(plan: MealPlan): string { return plan.recipe?.name || this.recipes.find(item => item.recipe.id === plan.recipe_id)?.recipe.name || 'Selected recipe'; }
+  carbLabel(choice?: CarbChoice): string { return this.carbChoices.find(option => option.value === choice)?.label || 'White rice'; }
   servingsFor(plan: MealPlan): number { return plan.servings || plan.recipe?.servings || 1; }
   dinersFor(plan: MealPlan): string { const ids = plan.diner_profile_ids || []; const names = this.diners.filter(diner => ids.includes(diner.id)).map(diner => diner.name); return names.length ? names.join(', ') : this.household ? 'No diners selected' : 'Personal profile'; }
   get plannerName(): string { return this.household?.name || 'your personal profile'; }
@@ -154,7 +156,7 @@ export class MealPlanPage implements OnDestroy {
     if (!this.draft?.recipeId) { this.message = 'Choose a recipe before saving this meal.'; return; }
     if (this.household && !this.draft.dinerIds.length) { this.message = 'Select at least one diner.'; return; }
     this.saving = true;
-    const payload = { recipe_id: this.draft.recipeId, ...(this.household ? { family_id: this.household.id, diner_profile_ids: this.draft.dinerIds } : {}), planned_date: this.draft.date, meal_type: this.draft.mealType.toLowerCase(), servings: this.draft.servings };
+    const payload = { recipe_id: this.draft.recipeId, ...(this.household ? { family_id: this.household.id, diner_profile_ids: this.draft.dinerIds } : {}), planned_date: this.draft.date, meal_type: this.draft.mealType.toLowerCase(), servings: this.draft.servings, carb_choice: this.draft.carbChoice, include_carb: this.draft.includeCarb };
     const request = this.draft.planId ? this.api.updateMealPlan(this.draft.planId, payload) : this.api.createMealPlan(payload);
     request.subscribe({ next: () => { this.message = 'Meal scheduled.'; this.draft = undefined; this.saving = false; this.load(true); }, error: error => { this.message = error?.error?.message || 'Could not save this meal.'; this.saving = false; } });
   }

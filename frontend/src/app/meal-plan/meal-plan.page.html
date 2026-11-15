@@ -58,7 +58,8 @@
             <ng-container *ngIf="planFor(selectedDay, type) as plan; else addMeal">
               <button type="button" class="planned" (click)="openSlot(selectedDay, type, plan)">
                 <strong>{{ recipeName(plan) }}</strong>
-                <small>{{ servingsFor(plan) }} servings · {{ dinersFor(plan) }}</small>
+                <small *ngIf="plan.secondary_dish">Secondary dish: {{ plan.secondary_dish.name }}</small>
+                <small>{{ servingsFor(plan) }} servings · {{ dinersFor(plan) }} · {{ plan.include_carb === false ? 'No carb side' : 'With ' + carbLabel(plan.carb_choice) }}</small>
                 <span class="readiness" [class]="'readiness readiness--' + readiness(plan)"><ion-icon [name]="readiness(plan) === 'ready' ? 'checkmark-circle' : readiness(plan) === 'attention' ? 'cart-outline' : readiness(plan) === 'cooked' ? 'checkmark-done-outline' : 'help-circle-outline'"></ion-icon>{{ readinessLabel(plan) }}</span>
               </button>
               <ion-button size="small" fill="clear" (click)="openMealDetails(plan)">
@@ -107,6 +108,16 @@
     </ion-header>
     <ion-content class="editor ion-padding" *ngIf="draft">
       <p>{{ draft.date | date:'EEEE, MMMM d' }}</p>
+      <ion-card *ngIf="draft.secondaryDish">
+        <ion-card-header><ion-card-title>Secondary Dish</ion-card-title><ion-card-subtitle>{{ draft.secondaryDish.type }}</ion-card-subtitle></ion-card-header>
+        <ion-card-content>
+          <h2>{{ draft.secondaryDish.name }}</h2>
+          <strong>Ingredients</strong>
+          <p *ngFor="let ingredient of draft.secondaryDish.ingredients">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</p>
+          <strong *ngIf="draft.secondaryDish.steps.length">Steps</strong>
+          <p *ngFor="let step of draft.secondaryDish.steps">{{ step }}</p>
+        </ion-card-content>
+      </ion-card>
       <ion-list>
         <ion-item>
           <ion-select label="Recipe" labelPlacement="stacked" placeholder="Select a recipe" [(ngModel)]="draft.recipeId">
@@ -114,6 +125,8 @@
           </ion-select>
         </ion-item>
         <ion-item><ion-input label="Servings" labelPlacement="stacked" type="number" min="1" [(ngModel)]="draft.servings"></ion-input></ion-item>
+        <ion-item><ion-select label="Optional carbohydrate side" labelPlacement="stacked" [(ngModel)]="draft.carbChoice" [disabled]="!draft.includeCarb"><ion-select-option *ngFor="let option of carbChoices" [value]="option.value">{{ option.label }}</ion-select-option></ion-select></ion-item>
+        <ion-item><ion-checkbox slot="start" [(ngModel)]="draft.includeCarb"></ion-checkbox><ion-label>Include carbohydrate side</ion-label></ion-item>
       </ion-list>
       <ng-container *ngIf="household">
         <h2>Who is eating?</h2>
@@ -124,7 +137,7 @@
           </ion-item>
         </ion-list>
       </ng-container>
-      <p class="helper">{{ household ? 'Diners, servings, and dietary checks are saved with this shared meal.' : 'This meal is for your personal profile; your dietary restrictions are enforced when it is saved.' }}</p>
+      <p class="helper">Carbohydrate needs vary. Choose or omit this side based on personal preference and guidance from your health care professional. This app does not provide diabetes nutrition advice.</p>
       <ion-button expand="block" [disabled]="saving" (click)="save()">{{ saving ? 'Saving…' : 'Save meal' }}</ion-button>
       <ion-button *ngIf="draft.planId" expand="block" fill="outline" color="danger" (click)="remove()">Remove meal</ion-button>
     </ion-content>

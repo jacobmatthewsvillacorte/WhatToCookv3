@@ -4,7 +4,7 @@ import { AuthService } from '../services/auth.service';
 import { HouseholdContextService } from '../services/household-context.service';
 
 type DietField = 'health_conditions' | 'allergies' | 'dietary_restrictions' | 'likes' | 'dislikes';
-interface DinerForm { id: number | null; user_id: number | null; name: string; relation: string; sex: string; birth_date: string; height_cm: string; weight_kg: string; activity_level: string; goal: string; health_conditions: string; allergies: string; dietary_restrictions: string; likes: string; dislikes: string; visible_to_family: Record<string, boolean>; }
+interface DinerForm { id: number | null; user_id: number | null; name: string; relation: string; sex: string; birth_date: string; height_cm: string; weight_kg: string; activity_level: string; goal: string; health_condition: 'none' | 'diabetic' | 'low_sugar'; health_conditions: string; allergies: string; dietary_restrictions: string; likes: string; dislikes: string; visible_to_family: Record<string, boolean>; }
 
 @Component({ selector: 'app-family', templateUrl: './family.page.html', styleUrls: ['./family.page.scss'], standalone: false })
 export class FamilyPage {
@@ -66,7 +66,7 @@ export class FamilyPage {
     this.savingProfile = true;
     const payload: Partial<HouseholdProfile> = {
       user_id: this.diner.user_id, name: this.diner.name.trim(), relation: this.diner.relation || null, sex: this.diner.sex || null,
-      birth_date: this.diner.birth_date || null, height_cm: this.numberOrNull(this.diner.height_cm), weight_kg: this.numberOrNull(this.diner.weight_kg),
+      birth_date: this.diner.birth_date || null, height_cm: this.numberOrNull(this.diner.height_cm), weight_kg: this.numberOrNull(this.diner.weight_kg), health_condition: this.diner.health_condition,
       activity_level: this.diner.activity_level || null, goal: this.diner.goal || null, visible_to_family: this.diner.visible_to_family,
     };
     this.fields.forEach(field => payload[field.key] = this.toArray(this.diner[field.key]));
@@ -76,8 +76,8 @@ export class FamilyPage {
     request.subscribe({ next: () => { this.savingProfile = false; this.showProfileForm = false; this.diner = this.emptyDiner(); this.message = 'Diner profile saved.'; this.loadProfiles(); }, error: error => { this.savingProfile = false; this.message = error?.error?.message || 'Could not save the diner profile.'; } });
   }
   removeProfile(profile: HouseholdProfile): void { if (!this.selected || !confirm(`Remove ${profile.name}'s household profile?`)) return; this.api.deleteHouseholdProfile(this.selected.id, profile.id).subscribe({ next: () => { this.message = 'Diner profile removed.'; this.loadProfiles(); }, error: () => this.message = 'Could not remove the diner profile.' }); }
-  private emptyDiner(): DinerForm { return { id: null, user_id: null, name: '', relation: '', sex: '', birth_date: '', height_cm: '', weight_kg: '', activity_level: '', goal: '', health_conditions: '', allergies: '', dietary_restrictions: '', likes: '', dislikes: '', visible_to_family: { health_conditions: false, allergies: false, dietary_restrictions: false, likes: false, dislikes: false } }; }
-  private fromProfile(profile: HouseholdProfile): DinerForm { const form = this.emptyDiner(); form.id = profile.id; form.user_id = profile.user_id ?? null; form.name = profile.name; form.relation = profile.relation || ''; form.sex = profile.sex || ''; form.birth_date = profile.birth_date ? profile.birth_date.slice(0, 10) : ''; form.height_cm = profile.height_cm?.toString() || ''; form.weight_kg = profile.weight_kg?.toString() || ''; form.activity_level = profile.activity_level || ''; form.goal = profile.goal || ''; this.fields.forEach(field => { form[field.key] = (profile[field.key] || []).join(', '); form.visible_to_family[field.key] = profile.visible_to_family?.[field.key] ?? false; }); return form; }
+  private emptyDiner(): DinerForm { return { id: null, user_id: null, name: '', relation: '', sex: '', birth_date: '', height_cm: '', weight_kg: '', activity_level: '', goal: '', health_condition: 'none', health_conditions: '', allergies: '', dietary_restrictions: '', likes: '', dislikes: '', visible_to_family: { health_condition: false, health_conditions: false, allergies: false, dietary_restrictions: false, likes: false, dislikes: false } }; }
+  private fromProfile(profile: HouseholdProfile): DinerForm { const form = this.emptyDiner(); form.id = profile.id; form.user_id = profile.user_id ?? null; form.name = profile.name; form.relation = profile.relation || ''; form.sex = profile.sex || ''; form.birth_date = profile.birth_date ? profile.birth_date.slice(0, 10) : ''; form.height_cm = profile.height_cm?.toString() || ''; form.weight_kg = profile.weight_kg?.toString() || ''; form.activity_level = profile.activity_level || ''; form.goal = profile.goal || ''; form.health_condition = profile.health_condition || 'none'; this.fields.forEach(field => { form[field.key] = (profile[field.key] || []).join(', '); form.visible_to_family[field.key] = profile.visible_to_family?.[field.key] ?? false; }); form.visible_to_family['health_condition'] = profile.visible_to_family?.['health_condition'] ?? false; return form; }
   private toArray(value: string): string[] { return value.split(',').map(item => item.trim()).filter(Boolean); }
   private numberOrNull(value: string): number | null { return value.trim() ? Number(value) : null; }
 }

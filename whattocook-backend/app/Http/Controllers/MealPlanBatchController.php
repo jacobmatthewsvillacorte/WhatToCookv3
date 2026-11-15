@@ -57,6 +57,9 @@ class MealPlanBatchController extends Controller
                     ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get()
                     : collect([$request->user()->profile()->firstOrCreate([])]);
                 $recipes = $ranker->rank(Recipe::with('ingredients')->get(), $profilesForDay, $pantry, $history, $data, $chosen, $date);
+                if ($familyId) {
+                    $recipes = $recipes->filter(fn (Recipe $candidate) => $this->hasProteinAndVegetables($candidate));
+                }
                 if ($recipes->isEmpty()) {
                     throw ValidationException::withMessages(['recipes' => ["No safe recipes are available for {$dateKey} and its selected diners."]]);
                 }
@@ -89,6 +92,16 @@ class MealPlanBatchController extends Controller
                         'diner_profile_ids' => $dinerIds ?: null,
                         'child_meal_plan' => $childPlan,
                         'selection_reason' => $why,
+                        'secondary_dish' => $familyId ? $this->secondaryDish($recipe) : null,
+                        'carb_choice' => 'white_rice',
+                        'include_carb' => true,
+                        'carb_side' => $familyId ? $this->carbSide($profilesForDay) : null,
+                        'estimated_carbs' => $recipe->carbs === null
+                            ? 'Unavailable from current recipe nutrition data; selected carb side is not included.'
+                            : 'Main dish estimate: about '.$recipe->carbs.' g per serving; selected carb side is not included.',
+                        'diabetic_friendly_note' => $familyId && $this->hasLowSugarDiner($profilesForDay)
+                            ? 'Meals are filtered to avoid obvious sugary ingredients. Carb suggestions are general options, not medical advice; follow your care team’s guidance.'
+                            : null,
                     ]);
                 }
             }
@@ -115,6 +128,18 @@ class MealPlanBatchController extends Controller
             'planned_date' => 'sometimes|date|after_or_equal:'.$mealPlanBatch->start_date->toDateString().'|before_or_equal:'.$mealPlanBatch->end_date->toDateString(),
             'meal_type' => 'sometimes|string|in:breakfast,lunch,dinner',
             'servings' => 'sometimes|integer|min:1|max:100',
+            'carb_choice' => 'sometimes|string|in:white_rice,brown_rice,quinoa,sweet_potato,potato,corn',
+            'include_carb' => 'sometimes|boolean',
+            'carb_side' => 'sometimes|array',
+            'carb_side.default' => 'required_with:carb_side|string|max:255',
+            'carb_side.optional' => 'required_with:carb_side|boolean',
+            'carb_side.per_member' => 'required_with:carb_side|array',
+            'carb_side.per_member.*.member_profile_id' => 'required|integer|exists:household_profiles,id',
+            'carb_side.per_member.*.member' => 'required|string|max:255',
+            'carb_side.per_member.*.carb' => 'required|string|max:500',
+            'carb_side.per_member.*.optional' => 'required|boolean',
+            'carb_side.per_member.*.diabetic_friendly' => 'required|boolean',
+            'carb_side.per_member.*.included' => 'sometimes|boolean',
             'diner_profile_ids' => 'sometimes|nullable|array',
             'diner_profile_ids.*' => 'integer|distinct',
             'child_meal_modes' => 'sometimes|array',
@@ -127,7 +152,47 @@ class MealPlanBatchController extends Controller
         if ($familyId && ! $diners) {
             throw ValidationException::withMessages(['diner_profile_ids' => ['Choose at least one household diner.']]);
         }
+        if ($familyId) {
+            $profiles = HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $diners)->get();
+            $choice = $data['carb_choice'] ?? $mealPlan->carb_choice ?? 'white_rice';
+            $freshSide = $this->carbSide($profiles, $choice);
+            $existingInclusion = collect($mealPlan->carb_side['per_member'] ?? [])->keyBy('member_profile_id');
+            foreach ($freshSide['per_member'] as &$memberOption) {
+                if (isset($existingInclusion[$memberOption['member_profile_id']]['included'])) {
+                    $memberOption['included'] = $existingInclusion[$memberOption['member_profile_id']]['included'];
+                }
+                if (array_key_exists('include_carb', $data)) {
+                    $memberOption['included'] = (bool) $data['include_carb'];
+                }
+            }
+            unset($memberOption);
+            if (array_key_exists('carb_side', $data)) {
+                $requestedOptions = collect($data['carb_side']['per_member'])->keyBy('member_profile_id');
+                if ($requestedOptions->keys()->diff($diners)->isNotEmpty()) {
+                    throw ValidationException::withMessages(['carb_side' => ['Carb choices must belong to the selected diners.']]);
+                }
+                foreach ($freshSide['per_member'] as &$memberOption) {
+                    if (isset($requestedOptions[$memberOption['member_profile_id']]['included'])) {
+                        $memberOption['included'] = $requestedOptions[$memberOption['member_profile_id']]['included'];
+                    }
+                }
+                unset($memberOption);
+            }
+            $data['carb_side'] = $freshSide;
+            $data['diabetic_friendly_note'] = $this->hasLowSugarDiner($profiles)
+                ? 'Meals are filtered to avoid obvious sugary ingredients. Carb suggestions are general options, not medical advice; follow your care team’s guidance.'
+                : null;
+        }
+        if ($familyId) {
+            $data['secondary_dish'] = $this->secondaryDish(Recipe::with('ingredients')->find($data['recipe_id'] ?? $mealPlan->recipe_id));
+        }
         $recipeId = $data['recipe_id'] ?? $mealPlan->recipe_id;
+        if (array_key_exists('recipe_id', $data) || ! $mealPlan->estimated_carbs) {
+            $selectedRecipe = Recipe::find($recipeId);
+            $data['estimated_carbs'] = $selectedRecipe?->carbs === null
+                ? 'Unavailable from current recipe nutrition data; selected carb side is not included.'
+                : 'Main dish estimate: about '.$selectedRecipe->carbs.' g per serving; selected carb side is not included.';
+        }
         if (! $this->rankedSafeRecipes($request, $familyId, $diners, Carbon::parse($data['planned_date'] ?? $mealPlan->planned_date))->contains('id', $recipeId)) {
             throw ValidationException::withMessages(['recipe_id' => ['This recipe conflicts with the diners or dietary restrictions for this meal.']]);
         }
@@ -246,7 +311,7 @@ class MealPlanBatchController extends Controller
             $mealPlanBatch->update(['status' => 'saved', 'saved_at' => now()]);
         });
 
-        return response()->json(['batch' => $mealPlanBatch->fresh(), 'meal_plans' => $mealPlanBatch->mealPlans()->with('recipe.ingredients')->get(), 'summary' => $summary, 'message' => 'Meal plan saved.']);
+        return response()->json(['batch' => $mealPlanBatch->fresh(), 'meal_plans' => $mealPlanBatch->mealPlans()->with('recipe.ingredients')->get(), 'summary' => $summary, 'disclaimer' => 'Consult a doctor or dietitian for specific dietary needs.', 'message' => 'Meal plan saved.']);
     }
 
     public function discard(Request $request, MealPlanBatch $mealPlanBatch)
@@ -267,6 +332,7 @@ class MealPlanBatchController extends Controller
         return [
             'batch' => $batch,
             'meal_plans' => $batch->mealPlans,
+            'disclaimer' => 'Consult a doctor or dietitian for specific dietary needs.',
             'summary' => $this->summary($request, $batch, $matcher),
             'conflicts' => $this->conflictsFor($request, $batch, $batch->mealPlans)->values(),
             // Never expose a household member's personal recipe. The UI only
@@ -299,6 +365,40 @@ class MealPlanBatchController extends Controller
                     $requirements[$key]['substitutes'] = $match['substitutes'] ?? [];
                 }
             }
+            foreach ($plan->secondary_dish['ingredients'] ?? [] as $ingredient) {
+                $quantity = $this->quantity($ingredient['quantity'] ?? null);
+                $scale = $this->servingEquivalent($plan) / max(1, (int) ($plan->recipe->servings ?: 1));
+                $required = $quantity === null ? null : $quantity * $scale;
+                $normalised = $this->normaliseRequirement($ingredient['name'], $ingredient['unit'] ?? null, $required);
+                $key = $normalised['key'];
+                $requirements[$key] ??= ['name' => $ingredient['name'], 'unit' => $normalised['unit'], 'required_quantity' => 0.0, 'needs_review' => false, 'substitutes' => []];
+                if ($required === null) {
+                    $requirements[$key]['needs_review'] = true;
+                } else {
+                    $requirements[$key]['required_quantity'] += $normalised['quantity'];
+                }
+            }
+            if ($plan->include_carb) {
+                $allMembers = collect($plan->carb_side['per_member'] ?? []);
+                $members = $allMembers->filter(fn ($item) => $item['included'] ?? true);
+                if ($members->isNotEmpty()) {
+                    foreach ($members as $member) {
+                        $carb = ($member['diabetic_friendly'] ?? false)
+                            ? ['name' => 'brown rice', 'quantity' => 0.5, 'unit' => 'cup']
+                            : ['name' => 'white rice', 'quantity' => 1, 'unit' => 'cup'];
+                        $normalised = $this->normaliseRequirement($carb['name'], $carb['unit'], $carb['quantity'] * $this->servingEquivalent($plan) / max(1, $allMembers->count()));
+                        $key = $normalised['key'];
+                        $requirements[$key] ??= ['name' => $carb['name'], 'unit' => $normalised['unit'], 'required_quantity' => 0.0, 'needs_review' => false, 'substitutes' => []];
+                        $requirements[$key]['required_quantity'] += $normalised['quantity'];
+                    }
+                } elseif (! $plan->carb_side) {
+                    $carb = ['name' => 'white rice', 'quantity' => 1, 'unit' => 'cup'];
+                    $normalised = $this->normaliseRequirement($carb['name'], $carb['unit'], $carb['quantity'] * $this->servingEquivalent($plan));
+                    $key = $normalised['key'];
+                    $requirements[$key] ??= ['name' => $carb['name'], 'unit' => $normalised['unit'], 'required_quantity' => 0.0, 'needs_review' => false, 'substitutes' => []];
+                    $requirements[$key]['required_quantity'] += $normalised['quantity'];
+                }
+            }
         }
         $items = collect($requirements)->map(function (array $requirement) use ($matcher, $pantry) {
             $availability = $matcher->availabilityFor($requirement['name'], $requirement['unit'], $pantry);
@@ -318,6 +418,114 @@ class MealPlanBatchController extends Controller
             'shortages' => $items->whereIn('status', ['low_stock', 'missing'])->values(),
             'needs_review' => $items->where('status', 'needs_review')->values(),
         ];
+    }
+
+    private function carbSide($profiles, string $choice = 'white_rice'): array
+    {
+        $labels = [
+            'white_rice' => ['1 cup steamed rice', '1 cup steamed rice'],
+            'brown_rice' => ['1 cup steamed brown rice', '1/2 cup steamed brown rice'],
+            'quinoa' => ['1 cup cooked quinoa', '1/2 cup cooked quinoa'],
+            'sweet_potato' => ['1 medium kamote', '1/2 medium kamote'],
+            'potato' => ['1 medium potato', '1/2 medium potato'],
+            'corn' => ['1 ear of corn', '1/2 ear of corn'],
+        ];
+        [$regularCarb, $lowerCarb] = $labels[$choice] ?? $labels['white_rice'];
+
+        return [
+            'default' => $regularCarb,
+            'optional' => true,
+            'per_member' => $profiles->map(function (HouseholdProfile $profile) use ($regularCarb, $lowerCarb) {
+                $restricted = $this->isLowSugarProfile($profile);
+
+                return [
+                    'member_profile_id' => $profile->id,
+                    'member' => $profile->name,
+                    'carb' => $restricted
+                        ? $lowerCarb.' or skip and add extra vegetables'
+                        : $regularCarb,
+                    'optional' => true,
+                    'diabetic_friendly' => $restricted,
+                    'included' => true,
+                ];
+            })->values()->all(),
+        ];
+    }
+
+    private function secondaryDish(?Recipe $main): array
+    {
+        $mainIngredients = $main?->ingredients->pluck('name')->map(fn ($name) => strtolower((string) $name))->all() ?? [];
+        $instructions = strtolower(($main?->name ?? '').' '.($main?->instructions ?? ''));
+        $mainMethod = match (true) {
+            str_contains($instructions, 'grill'), str_contains($instructions, 'inasal') => 'grill',
+            str_contains($instructions, 'fry'), str_contains($instructions, 'pan-fry') => 'fry',
+            str_contains($instructions, 'kinilaw'), str_contains($instructions, 'raw') => 'no_cook',
+            str_contains($instructions, 'steam') => 'steam',
+            str_contains($instructions, 'boil'), str_contains($instructions, 'simmer') => 'boil',
+            str_contains($instructions, 'saute'), str_contains($instructions, 'sauté'), str_contains($instructions, 'stir-fry') => 'saute',
+            default => 'other',
+        };
+        $dishes = [
+            ['name' => 'Ensaladang Pipino at Kamatis', 'type' => 'salad', 'main_ingredient' => 'cucumber', 'method' => 'no_cook', 'ingredients' => [['name' => 'cucumber', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'tomatoes', 'quantity' => '2', 'unit' => 'pcs'], ['name' => 'red onion', 'quantity' => '1/4', 'unit' => 'pc'], ['name' => 'calamansi', 'quantity' => '2', 'unit' => 'pcs']], 'steps' => ['Wash and slice the cucumber, tomatoes, and onion.', 'Toss with calamansi juice and serve chilled.']],
+            ['name' => 'Steamed Pechay', 'type' => 'vegetable', 'main_ingredient' => 'pechay', 'method' => 'steam', 'ingredients' => [['name' => 'pechay', 'quantity' => '1', 'unit' => 'bundle'], ['name' => 'garlic', 'quantity' => '2', 'unit' => 'cloves']], 'steps' => ['Wash the pechay and trim the ends.', 'Steam until just tender, then top with chopped garlic.']],
+            ['name' => 'Nilagang Sayote at Karot', 'type' => 'vegetable soup', 'main_ingredient' => 'sayote', 'method' => 'boil', 'ingredients' => [['name' => 'sayote', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'carrot', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'water', 'quantity' => '3', 'unit' => 'cups']], 'steps' => ['Slice the sayote and carrot.', 'Boil in water until tender and season lightly with salt.']],
+            ['name' => 'Ginisang Kangkong', 'type' => 'vegetable', 'main_ingredient' => 'kangkong', 'method' => 'saute', 'ingredients' => [['name' => 'kangkong', 'quantity' => '1', 'unit' => 'bundle'], ['name' => 'garlic', 'quantity' => '3', 'unit' => 'cloves'], ['name' => 'water', 'quantity' => '2', 'unit' => 'tbsp']], 'steps' => ['Wash and cut the kangkong.', 'Soften garlic in a pan, add kangkong and water, then cover until just wilted.']],
+            ['name' => 'Grilled Talong', 'type' => 'vegetable', 'main_ingredient' => 'eggplant', 'method' => 'grill', 'ingredients' => [['name' => 'eggplant', 'quantity' => '2', 'unit' => 'pcs'], ['name' => 'calamansi', 'quantity' => '2', 'unit' => 'pcs']], 'steps' => ['Grill the eggplants until soft and lightly charred.', 'Cool, peel, and serve with calamansi.']],
+            ['name' => 'Ensaladang Papaya', 'type' => 'salad', 'main_ingredient' => 'green papaya', 'method' => 'no_cook', 'ingredients' => [['name' => 'green papaya', 'quantity' => '1/2', 'unit' => 'pc'], ['name' => 'tomatoes', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'calamansi', 'quantity' => '3', 'unit' => 'pcs']], 'steps' => ['Peel and shred the green papaya, then slice the tomato.', 'Toss with calamansi juice and serve fresh.']],
+            ['name' => 'Ensaladang Labanos', 'type' => 'salad', 'main_ingredient' => 'radish', 'method' => 'no_cook', 'ingredients' => [['name' => 'radish', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'tomatoes', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'cane vinegar', 'quantity' => '2', 'unit' => 'tbsp']], 'steps' => ['Thinly slice the radish and tomato.', 'Toss with vinegar and a pinch of salt, then chill briefly.']],
+            ['name' => 'Steamed Kalabasa', 'type' => 'vegetable', 'main_ingredient' => 'squash', 'method' => 'steam', 'ingredients' => [['name' => 'squash', 'quantity' => '400', 'unit' => 'g'], ['name' => 'garlic', 'quantity' => '2', 'unit' => 'cloves']], 'steps' => ['Cut the squash into serving pieces.', 'Steam until tender and finish with chopped garlic.']],
+            ['name' => 'Steamed Okra', 'type' => 'vegetable', 'main_ingredient' => 'okra', 'method' => 'steam', 'ingredients' => [['name' => 'okra', 'quantity' => '250', 'unit' => 'g'], ['name' => 'calamansi', 'quantity' => '2', 'unit' => 'pcs']], 'steps' => ['Wash the okra and trim the stems.', 'Steam until tender and serve with calamansi.']],
+            ['name' => 'Sabaw na Upo at Kamatis', 'type' => 'vegetable soup', 'main_ingredient' => 'upo', 'method' => 'boil', 'ingredients' => [['name' => 'upo', 'quantity' => '300', 'unit' => 'g'], ['name' => 'tomatoes', 'quantity' => '2', 'unit' => 'pcs'], ['name' => 'water', 'quantity' => '3', 'unit' => 'cups']], 'steps' => ['Peel and slice the upo; chop the tomatoes.', 'Simmer in water until the upo is tender and season lightly.']],
+            ['name' => 'Nilagang Repolyo at Karot', 'type' => 'vegetable soup', 'main_ingredient' => 'cabbage', 'method' => 'boil', 'ingredients' => [['name' => 'cabbage', 'quantity' => '1/4', 'unit' => 'head'], ['name' => 'carrot', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'water', 'quantity' => '3', 'unit' => 'cups']], 'steps' => ['Slice the cabbage and carrot.', 'Boil until tender and season lightly with salt.']],
+            ['name' => 'Ginisang Repolyo', 'type' => 'vegetable', 'main_ingredient' => 'cabbage', 'method' => 'saute', 'ingredients' => [['name' => 'cabbage', 'quantity' => '1/2', 'unit' => 'head'], ['name' => 'garlic', 'quantity' => '3', 'unit' => 'cloves'], ['name' => 'water', 'quantity' => '2', 'unit' => 'tbsp']], 'steps' => ['Slice the cabbage and mince the garlic.', 'Soften the garlic in a pan, add cabbage and water, then cook until just tender.']],
+            ['name' => 'Ginisang Ampalaya', 'type' => 'vegetable', 'main_ingredient' => 'ampalaya', 'method' => 'saute', 'ingredients' => [['name' => 'ampalaya', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'onion', 'quantity' => '1/2', 'unit' => 'pc'], ['name' => 'tomatoes', 'quantity' => '1', 'unit' => 'pc']], 'steps' => ['Halve and thinly slice the ampalaya; rinse if desired.', 'Saute onion and tomato, add ampalaya, and cook until tender-crisp.']],
+            ['name' => 'Inihaw na Talong', 'type' => 'vegetable', 'main_ingredient' => 'eggplant', 'method' => 'grill', 'ingredients' => [['name' => 'eggplant', 'quantity' => '2', 'unit' => 'pcs'], ['name' => 'tomatoes', 'quantity' => '1', 'unit' => 'pc']], 'steps' => ['Grill the eggplants until soft and lightly charred.', 'Peel, chop, and serve with sliced tomato.']],
+        ];
+        $preferredMethods = match ($mainMethod) {
+            'grill', 'fry', 'saute' => ['boil', 'no_cook', 'steam'],
+            'boil' => ['no_cook', 'steam', 'saute'],
+            'no_cook' => ['steam', 'boil', 'saute'],
+            'steam' => ['saute', 'no_cook', 'boil'],
+            default => ['no_cook', 'steam', 'boil', 'saute'],
+        };
+        usort($dishes, fn (array $a, array $b) => array_search($a['method'], $preferredMethods, true) <=> array_search($b['method'], $preferredMethods, true));
+        foreach ($dishes as $dish) {
+            $overlapsMainIngredient = collect($mainIngredients)->contains(fn ($name) => str_contains($name, $dish['main_ingredient']));
+            if ($dish['method'] !== $mainMethod && ! $overlapsMainIngredient) {
+                unset($dish['main_ingredient'], $dish['method']);
+                return $dish;
+            }
+        }
+        return ['name' => 'Ensaladang Pipino at Kamatis', 'type' => 'salad', 'ingredients' => [['name' => 'cucumber', 'quantity' => '1', 'unit' => 'pc'], ['name' => 'tomatoes', 'quantity' => '2', 'unit' => 'pcs']], 'steps' => ['Wash and slice the vegetables.', 'Toss together and serve fresh.']];
+    }
+
+    private function hasLowSugarDiner($profiles): bool
+    {
+        return $profiles->contains(fn (HouseholdProfile $profile) => $this->isLowSugarProfile($profile));
+    }
+
+    private function isLowSugarProfile(HouseholdProfile $profile): bool
+    {
+        $legacy = collect($profile->health_conditions ?? [])->map(fn ($value) => strtolower((string) $value));
+        return in_array($profile->health_condition, ['diabetic', 'low_sugar'], true)
+            || $legacy->contains(fn ($value) => str_contains($value, 'diabet') || str_contains($value, 'low sugar'));
+    }
+
+    private function hasProteinAndVegetables(Recipe $recipe): bool
+    {
+        $names = $recipe->ingredients->pluck('name')->map(fn ($name) => strtolower((string) $name));
+        $hasProtein = $names->contains(fn ($name) => preg_match('/chicken|pork|beef|oxtail|fish|bangus|tilapia|salmon|tuna|shrimp|egg|tofu|beans|mung|lentil/', $name));
+        $hasVegetable = $names->contains(fn ($name) => preg_match('/kangkong|spinach|papaya|radish|labanos|eggplant|string beans|green beans|tomato|carrot|cabbage|cauliflower|snow peas|squash|malunggay|taro leaves|broccoli|ampalaya|pechay|bok choy|okra|chayote|sayote|upo/', $name));
+        $containsStapleCarb = $names->contains(fn ($name) => preg_match('/\brace\b|noodle|pasta|pandesal|bread|potato|corn|sweet potato|\bbanana\b(?! blossom)/', $name));
+
+        return $hasProtein && $hasVegetable && ! $containsStapleCarb;
+    }
+
+    private function hasSugaryItems(Recipe $recipe): bool
+    {
+        return $recipe->ingredients->pluck('name')->push($recipe->name)->contains(
+            fn ($name) => preg_match('/(?<!free )\b(sugar|honey|syrup|sweetened|condensed milk|soft drink|soda|dessert|cake|candy|sweet and sour|sweet chili|teriyaki|ketchup|barbecue sauce|bbq sauce)\b/i', (string) $name),
+        );
     }
 
     private function generationData(Request $request): array
@@ -454,6 +662,8 @@ class MealPlanBatchController extends Controller
         return Recipe::with('ingredients')->get()
             ->filter(fn (Recipe $recipe) => $this->foodSafety->recipeIsSafe($recipe, $profiles))
             ->filter(fn (Recipe $recipe) => ! $hasYoungChild || ! $this->hasYoungChildConflict($recipe))
+            ->filter(fn (Recipe $recipe) => ! $familyId || $this->hasProteinAndVegetables($recipe))
+            ->filter(fn (Recipe $recipe) => ! $familyId || ! $this->hasLowSugarDiner($profiles) || ! $this->hasSugaryItems($recipe))
             ->map(function (Recipe $recipe) use ($likes, $dislikes, $pantryNames) {
             $terms = $recipe->ingredients->pluck('name')->push($recipe->name)->map(fn ($value) => strtolower($value));
             $hits = $recipe->ingredients->filter(fn ($ingredient) => $pantryNames->contains(fn ($item) => str_contains($item, strtolower($ingredient->name)) || str_contains(strtolower($ingredient->name), $item)))->count();
@@ -493,7 +703,15 @@ class MealPlanBatchController extends Controller
         } else {
             abort_unless($batch->user_id === $request->user()->id, 403);
         }
-        if ($batch->status === 'draft') abort_unless($batch->user_id === $request->user()->id, 403);
+        if ($batch->status === 'draft') {
+            $isHouseholdOwner = $batch->family_id && FamilyMember::where([
+                'family_id' => $batch->family_id,
+                'user_id' => $request->user()->id,
+                'status' => 'accepted',
+                'role' => 'owner',
+            ])->exists();
+            abort_unless($batch->user_id === $request->user()->id || $isHouseholdOwner, 403);
+        }
     }
 
     private function authoriseDraft(Request $request, MealPlanBatch $batch): void

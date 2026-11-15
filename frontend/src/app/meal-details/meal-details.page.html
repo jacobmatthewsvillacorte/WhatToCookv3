@@ -21,10 +21,47 @@
         </ion-card-header>
         <ion-card-content>
           <p>{{ plan.servings || 1 }} serving{{ plan.servings === 1 ? '' : 's' }} · {{ dinerNames }}</p>
+          <p *ngIf="!plan.carb_side">Carbohydrate side: {{ plan.include_carb === false ? 'Omitted' : carbLabel(plan.carb_choice) }}{{ plan.include_carb === false ? '' : ' (optional)' }}</p>
           <p *ngIf="plan.recipe?.description">{{ plan.recipe?.description }}</p>
           <ion-note color="success" *ngIf="isCompleted">Cooked{{ plan.completion_method === 'without_pantry_deduction' ? ' without changing pantry stock' : ' and deducted from pantry' }}.</ion-note>
         </ion-card-content>
       </ion-card>
+
+      <ion-card *ngIf="plan.main_dish">
+        <ion-card-header><ion-card-title>Main Dish</ion-card-title></ion-card-header>
+        <ion-card-content>
+          <h2>{{ plan.main_dish.name }}</h2>
+          <strong>Ingredients</strong>
+          <p *ngFor="let ingredient of plan.main_dish.ingredients">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</p>
+          <strong *ngIf="plan.main_dish.steps.length">Steps</strong>
+          <p *ngFor="let step of plan.main_dish.steps">{{ step }}</p>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card *ngIf="plan.secondary_dish as secondary">
+        <ion-card-header><ion-card-title>Secondary Dish</ion-card-title><ion-card-subtitle>{{ secondary.type }}</ion-card-subtitle></ion-card-header>
+        <ion-card-content>
+          <h2>{{ secondary.name }}</h2>
+          <strong>Ingredients</strong>
+          <p *ngFor="let ingredient of secondary.ingredients">{{ ingredient.quantity }} {{ ingredient.unit }} {{ ingredient.name }}</p>
+          <strong *ngIf="secondary.steps.length">Steps</strong>
+          <p *ngFor="let step of secondary.steps">{{ step }}</p>
+        </ion-card-content>
+      </ion-card>
+
+      <ion-card *ngIf="plan.carb_side">
+        <ion-card-header><ion-card-title>Carb / Rice <ion-badge color="medium">Optional</ion-badge></ion-card-title></ion-card-header>
+        <ion-card-content>
+          <p>Default: {{ plan.carb_side.default }}</p>
+          <div class="carb-member" *ngFor="let option of plan.carb_side.per_member">
+            <ion-label><strong>{{ option.member }}:</strong> {{ option.carb }} <ion-badge color="success" *ngIf="option.diabetic_friendly">Diabetic-friendly</ion-badge><p>{{ option.included === false ? 'Skipped' : 'Optional' }}</p></ion-label>
+            <ion-toggle [checked]="option.included !== false" [disabled]="isCompleted || actionPending" aria-label="Include optional carb for {{ option.member }}" (ionChange)="setMemberCarb(option.member_profile_id, $event.detail.checked)"></ion-toggle>
+          </div>
+          <p *ngIf="plan.diabetic_friendly_note">{{ plan.diabetic_friendly_note }}</p>
+          <p *ngIf="plan.estimated_carbs">Estimated carbohydrates: {{ plan.estimated_carbs }}</p>
+        </ion-card-content>
+      </ion-card>
+      <ion-card *ngIf="!plan.carb_side"><ion-card-content><ion-note>No carb info available for this older meal plan.</ion-note></ion-card-content></ion-card>
 
       <section *ngIf="!isCompleted" aria-labelledby="ingredients-heading">
         <div class="section-heading">
@@ -59,6 +96,7 @@
         <ion-button expand="block" fill="clear" (click)="requestMarkCookedWithoutDeduction()" [disabled]="actionPending">Mark cooked without pantry update</ion-button>
         <ion-button expand="block" fill="clear" color="medium" (click)="editInPlanner()" [disabled]="actionPending">Edit, swap, or reschedule in planner</ion-button>
       </section>
+      <ion-note color="medium">Consult a doctor or dietitian for specific dietary needs.</ion-note>
     </ng-container>
   </main>
 </ion-content>
