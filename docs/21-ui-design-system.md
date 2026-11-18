@@ -52,14 +52,29 @@ Done:
 - **Spacing, font size, radius:** values that exactly equal a token (4/8/12/16/20/24/32/40/48/64 px spacing; 12/14/16/18/20/24 px font sizes; 10/14/18/24 px radii) now use `--wtc-space-*`, `--wtc-font-size-*`, `--wtc-radius-*`. These render identically; they just can now be changed in one place.
 - Shared shadow and border tokens replace two ad-hoc `rgba(...)` values in `pantry`.
 
-Not done, on purpose (need side-by-side screenshots to decide):
+Fixed after looking at the running app (screenshots at 390 px, light and dark):
 
-- **One page container.** Pages choose their own max width and padding (`meal-history` 680 px, `meal-details` 760 px, `meal-plan` 980 px, others 44 rem). `wtc-page` already exists; moving each page to it changes layout widths, so decide the width per page, then switch.
-- **Per-page `.eyebrow`, `.message`, `.section-heading`** differ in colour, weight and spacing, so they are not duplicates yet. Pick one design for each (for example `wtc-eyebrow` plus a `wtc-notice` class), add it to `global.scss`, then delete the page copies.
-- **Odd values** with no matching token (13 px, 9 px, 7 px, 16 px/28 px radii) are untouched. About 200 such declarations remain, 72 of them in `pantry.page.scss`. Round each to the nearest token when you next edit that screen.
+- **Dashboard** had no base styles at all. Its stylesheet only overrode classes that were never defined, so the switcher, pantry cards, "use soon" cards and recommendation cards rendered as raw text. It now has a full token-based layout.
+- **Meal details:** ingredient status ("Missing", "Review quantity", "Ready") was grey text; it is now a `wtc-status-chip` with the semantic colour.
+- **Forms:** added `wtc-form` (stacks controls) and `wtc-field-row` (two controls side by side). The shopping list used `ion-grid`, which indented the quantity/unit row; it now uses `wtc-field-row`. Use these instead of `ion-grid` for forms.
+- **Shopping list** rendered an empty white `ion-list` strip when there were no items; it now renders only when items exist.
+
+Not done, on purpose (needs a design decision):
+
+- **One page container.** Pages choose their own max width and padding (`meal-history` 680 px, `meal-details` 760 px, `meal-plan` 980 px, others 44 rem). Side gutters therefore differ by a few pixels from screen to screen (12 to 20 px). `wtc-page` exists; decide a width per page, then switch.
+- **Per-page `.eyebrow`, `.message`, `.section-heading`** still differ in colour, weight and spacing. Pick one design each, add it to `global.scss`, delete the page copies. (The dashboard now uses `wtc-eyebrow`.)
+- **Stacked form labels are small** (about 10-11 px) because Ionic scales them inside the control. Fixing it needs Ionic's label parts or a different label pattern.
+- **Recipe images** fall back to a generic coloured placeholder; a branded placeholder would look calmer.
+- **Odd values** with no matching token (13 px, 9 px, 7 px, 16 px/28 px radii), about 200 declarations, 72 in `pantry.page.scss`. Round each to the nearest token when you next edit that screen.
 - `plan-review` and `plan-setup` still hold repeated card and day-navigator blocks that should become shared components.
 
-How to verify a UI change: run `npm start`, check the screen in light and dark mode at 360 px and 768 px width.
+## How to check a UI change
+
+Reading SCSS is not enough: the dashboard shipped unstyled and nobody noticed. Run the app and look, in light and dark mode, at 360-390 px and about 768 px.
+
+1. Backend with a throwaway database (never your real one): create an empty sqlite file, run `DB_DATABASE=<that file> php artisan migrate --seed`, then serve with `DB_DATABASE=<that file>`. Note that `php artisan serve` does not forward environment variables to its worker, so use `php -S` with a tiny router script that calls `putenv('DB_DATABASE=...')` before requiring `public/index.php`.
+2. Register a test user, add a few pantry items, generate and save a plan so the screens have content.
+3. `npm start`, then screenshot each route (headless Chrome over the DevTools protocol works with no extra dependencies: set `whattocook_token` and `whattocook_user` in `localStorage`, navigate, `Page.captureScreenshot`, toggle `ion-palette-dark` on `body` for dark mode).
 
 ## Guided cooking mode (UX spec)
 

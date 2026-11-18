@@ -39,7 +39,7 @@
               <p>{{ ingredientDetail(check) }}</p>
               <p *ngIf="check.substitutes?.length">Possible substitutes: {{ check.substitutes?.join(', ') }}</p>
             </ion-label>
-            <ion-note slot="end" [color]="ingredientStatus(check)">{{ ingredientLabel(check) }}</ion-note>
+            <span slot="end" class="wtc-status-chip" [ngClass]="'wtc-status-chip--' + (ingredientStatus(check) === 'medium' ? 'info' : ingredientStatus(check))">{{ ingredientLabel(check) }}</span>
           </ion-item>
         </ion-list>
         <ion-note color="medium" *ngIf="!preflight && !checking">Ingredient status is unavailable right now. Refresh to check before cooking.</ion-note>

@@ -16,7 +16,7 @@
     <ng-container *ngIf="!loading && !error">
       <section class="dashboard-intro">
         <div>
-          <p class="eyebrow">{{ greeting }}, {{ auth.user?.name || 'there' }}</p>
+          <p class="wtc-eyebrow">{{ greeting }}, {{ auth.user?.name || 'there' }}</p>
           <h1>What’s happening in your kitchen today?</h1>
         </div>
         <ion-button fill="clear" size="small" (click)="loadDashboardData()" aria-label="Refresh dashboard">
@@ -38,7 +38,7 @@
 
       <section class="dashboard-section pantry-overview">
         <div class="section-heading">
-          <div><p class="eyebrow">Pantry overview</p><h2>At a glance</h2></div>
+          <div><p class="wtc-eyebrow">Pantry overview</p><h2>At a glance</h2></div>
           <a routerLink="/tabs/pantry">Manage pantry</a>
         </div>
         <div class="pantry-grid">
@@ -70,7 +70,7 @@
 
       <section class="dashboard-section" *ngIf="attention(overviewItems()).length">
         <div class="section-heading">
-          <div><p class="eyebrow">Use soon</p><h2>Items needing attention</h2></div>
+          <div><p class="wtc-eyebrow">Use soon</p><h2>Items needing attention</h2></div>
           <a routerLink="/tabs/pantry">See pantry</a>
         </div>
         <div class="expiry-scroll">
@@ -85,7 +85,7 @@
 
       <section class="dashboard-section recommendations">
         <div class="section-heading">
-          <div><p class="eyebrow">Based on {{ selectedPantryLabel }}</p><h2>Recommended for your household</h2></div>
+          <div><p class="wtc-eyebrow">Based on {{ selectedPantryLabel }}</p><h2>Recommended for your household</h2></div>
           <a routerLink="/tabs/recipes">See all</a>
         </div>
         <div class="recipe-list" *ngIf="recommendations.length; else noRecommendations">

@@ -587,6 +587,18 @@ ion-toast {
   gap: var(--wtc-space-2);
 }
 
+/* Form layout: .wtc-form stacks controls; .wtc-field-row puts two side by side (quantity + unit, dates). */
+.wtc-form {
+  display: grid;
+  gap: var(--wtc-space-3);
+}
+
+.wtc-field-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--wtc-space-3);
+}
+
 .wtc-field {
   display: grid;
   gap: var(--wtc-space-2);

@@ -1,19 +1,236 @@
-.dashboard-intro { margin-bottom: 2.5rem; }
-.dashboard-intro h1 { max-width: 30rem; font-size: clamp(2rem, 7vw, 2.75rem); line-height: 1.08; }
-.eyebrow { margin-bottom: .5rem; letter-spacing: .12em; }
-.household-switcher { padding: .75rem 1rem; border-radius: var(--wtc-radius-lg); box-shadow: none; }
-.scope-note { margin: .75rem .125rem 0; color: var(--wtc-color-text-muted); font-size: .8125rem; line-height: 1.6; }
-.dashboard-section { margin-top: 3.5rem; }
-.section-heading { margin-bottom: 1rem; }
-.section-heading h2 { font-family: var(--wtc-font-family-display); font-size: 1.375rem; font-weight: 600; }
-.pantry-grid { gap: .875rem; }
-.pantry-card { min-height: 11rem; padding: 1.125rem; border-radius: var(--wtc-radius-lg); }
-.pantry-card strong { font-size: 2rem; }
-.expiry-scroll { gap: .875rem; }
-.expiry-card { flex-basis: 9.5rem; min-height: 8rem; padding: 1rem; border-radius: var(--wtc-radius-lg); }
-.recipe-list { gap: 1rem; }
-.recipe-card { grid-template-columns: 7.5rem minmax(0, 1fr); border-radius: var(--wtc-radius-lg); }
-.recipe-card__body { padding: 1rem; }
+// Dashboard layout. Colour, radius, spacing and type come from --wtc-* tokens
+// (theme/variables.scss); shared blocks come from global.scss (wtc-state, wtc-eyebrow).
+
+:host { display: block; }
+
+a { color: inherit; text-decoration: none; }
+
+// --- Intro ------------------------------------------------------------------
+.dashboard-intro {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--wtc-space-3);
+  margin-bottom: var(--wtc-space-6);
+
+  h1 {
+    max-width: 30rem;
+    margin: var(--wtc-space-2) 0 0;
+    font-family: var(--wtc-font-family-display);
+    font-size: clamp(var(--wtc-font-size-2xl), 7vw, 2.75rem);
+    line-height: var(--wtc-line-height-tight);
+    letter-spacing: var(--wtc-letter-spacing-tight);
+    color: var(--wtc-color-text);
+  }
+
+  ion-button { flex: none; margin: 0; }
+}
+
+// --- Household switcher -----------------------------------------------------
+.household-switcher {
+  display: flex;
+  align-items: center;
+  gap: var(--wtc-space-3);
+  padding: var(--wtc-space-3) var(--wtc-space-4);
+  border: 1px solid var(--wtc-color-border);
+  border-radius: var(--wtc-radius-lg);
+  background: var(--wtc-color-surface);
+
+  > ion-icon { flex: none; color: var(--wtc-color-primary); font-size: 1.375rem; }
+  ion-select { flex: 1; min-width: 0; }
+  a {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--wtc-radius-pill);
+    color: var(--wtc-color-text-muted);
+    font-size: 1.25rem;
+  }
+}
+
+.scope-note {
+  margin: var(--wtc-space-3) var(--wtc-space-1) 0;
+  color: var(--wtc-color-text-muted);
+  font-size: var(--wtc-font-size-xs);
+  line-height: var(--wtc-line-height-body);
+}
+
+.load-notice {
+  display: flex;
+  align-items: center;
+  gap: var(--wtc-space-2);
+  margin: var(--wtc-space-4) 0 0;
+  padding: var(--wtc-space-3);
+  border-radius: var(--wtc-radius-md);
+  background: var(--wtc-color-info-soft);
+  color: var(--wtc-color-info);
+  font-size: var(--wtc-font-size-sm);
+}
+
+// --- Sections ---------------------------------------------------------------
+.dashboard-section { margin-top: var(--wtc-space-10); }
+
+.section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--wtc-space-3);
+  margin-bottom: var(--wtc-space-4);
+
+  h2 {
+    margin: var(--wtc-space-1) 0 0;
+    font-family: var(--wtc-font-family-display);
+    font-size: var(--wtc-font-size-lg);
+    font-weight: 600;
+    line-height: var(--wtc-line-height-heading);
+    color: var(--wtc-color-text);
+  }
+
+  > a {
+    flex: none;
+    padding: var(--wtc-space-2) 0;
+    color: var(--wtc-color-primary);
+    font-size: var(--wtc-font-size-sm);
+    font-weight: 700;
+  }
+}
+
+// --- Pantry overview --------------------------------------------------------
+.pantry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--wtc-space-3);
+}
+
+.pantry-card {
+  display: grid;
+  align-content: start;
+  gap: var(--wtc-space-1);
+  min-height: 10rem;
+  padding: var(--wtc-space-4);
+  border: 1px solid var(--wtc-color-border);
+  border-radius: var(--wtc-radius-lg);
+  background: var(--wtc-color-surface);
+  box-shadow: var(--wtc-shadow-xs);
+
+  > ion-icon {
+    width: 2.25rem;
+    height: 2.25rem;
+    padding: var(--wtc-space-2);
+    margin-bottom: var(--wtc-space-2);
+    border-radius: var(--wtc-radius-pill);
+    background: var(--wtc-color-primary-soft);
+    color: var(--wtc-color-primary);
+  }
+
+  > span { color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-sm); font-weight: 600; }
+  strong { color: var(--wtc-color-text); font-size: 2rem; line-height: 1; }
+  small { color: var(--wtc-color-text-subtle); font-size: var(--wtc-font-size-xs); }
+
+  p {
+    margin: var(--wtc-space-2) 0 0;
+    color: var(--wtc-color-warning);
+    font-size: var(--wtc-font-size-xs);
+    font-weight: 700;
+
+    &.is-clear { color: var(--wtc-color-success); }
+  }
+
+  &--invite {
+    border-style: dashed;
+    background: var(--wtc-color-surface-muted);
+    box-shadow: none;
+    p { color: var(--wtc-color-primary); }
+  }
+}
+
+// --- Use soon ---------------------------------------------------------------
+.expiry-scroll {
+  display: flex;
+  gap: var(--wtc-space-3);
+  margin: 0 calc(var(--wtc-page-gutter) * -1);
+  padding: 0 var(--wtc-page-gutter) var(--wtc-space-2);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: var(--wtc-page-gutter);
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.expiry-card {
+  display: grid;
+  align-content: start;
+  gap: var(--wtc-space-1);
+  flex: 0 0 9.5rem;
+  min-height: 8rem;
+  padding: var(--wtc-space-4);
+  border: 1px solid var(--wtc-color-warning);
+  border-radius: var(--wtc-radius-lg);
+  background: var(--wtc-color-warning-soft);
+  scroll-snap-align: start;
+
+  &__scope {
+    display: flex;
+    align-items: center;
+    gap: var(--wtc-space-1);
+    color: var(--wtc-color-warning);
+    font-size: var(--wtc-font-size-xs);
+    font-weight: 700;
+  }
+  strong { color: var(--wtc-color-text); font-size: var(--wtc-font-size-base); }
+  p { margin: 0; color: var(--wtc-color-warning); font-size: var(--wtc-font-size-sm); }
+  small { color: var(--wtc-color-text-muted); }
+}
+
+// --- Recommendations --------------------------------------------------------
+.recipe-list { display: grid; gap: var(--wtc-space-4); }
+
+.recipe-card {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr);
+  overflow: hidden;
+  border: 1px solid var(--wtc-color-border);
+  border-radius: var(--wtc-radius-lg);
+  background: var(--wtc-color-surface);
+  box-shadow: var(--wtc-shadow-xs);
+
+  img { width: 100%; height: 100%; min-height: 9rem; object-fit: cover; background: var(--wtc-color-neutral-soft); }
+
+  &__body {
+    display: grid;
+    align-content: start;
+    gap: var(--wtc-space-2);
+    min-width: 0;
+    padding: var(--wtc-space-4);
+
+    h3 { margin: 0; color: var(--wtc-color-text); font-size: var(--wtc-font-size-md); line-height: var(--wtc-line-height-heading); }
+    p {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--wtc-space-1);
+      margin: 0;
+      color: var(--wtc-color-text-muted);
+      font-size: var(--wtc-font-size-xs);
+    }
+    i { width: 3px; height: 3px; margin: 0 var(--wtc-space-1); border-radius: 50%; background: currentColor; }
+    small { color: var(--wtc-color-warning); font-size: var(--wtc-font-size-xs); font-weight: 600; &.ready { color: var(--wtc-color-success); } }
+    ion-button { justify-self: start; margin: var(--wtc-space-1) 0 0; }
+  }
+}
+
+.match-badge {
+  justify-self: start;
+  padding: var(--wtc-space-1) var(--wtc-space-2);
+  border-radius: var(--wtc-radius-pill);
+  background: var(--wtc-color-success-soft);
+  color: var(--wtc-color-success);
+  font-size: var(--wtc-font-size-xs);
+  font-weight: 700;
+}
 
 @media (min-width: 700px) {
   .pantry-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }

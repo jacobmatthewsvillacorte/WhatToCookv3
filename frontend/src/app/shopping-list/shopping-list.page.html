@@ -11,10 +11,10 @@
     <p class="message" *ngIf="message" role="status">{{ message }}</p>
 
     <ion-card class="shopping-add-card" aria-labelledby="shopping-add-title">
-      <ion-card-content>
+      <ion-card-content class="wtc-form">
         <h2 id="shopping-add-title">Add an item</h2>
         <ion-input label="Ingredient" labelPlacement="stacked" [(ngModel)]="name"></ion-input>
-        <ion-grid><ion-row><ion-col><ion-input label="Quantity" labelPlacement="stacked" [(ngModel)]="quantity"></ion-input></ion-col><ion-col><ion-input label="Unit" labelPlacement="stacked" [(ngModel)]="unit"></ion-input></ion-col></ion-row></ion-grid>
+        <div class="wtc-field-row"><ion-input label="Quantity" labelPlacement="stacked" [(ngModel)]="quantity"></ion-input><ion-input label="Unit" labelPlacement="stacked" [(ngModel)]="unit"></ion-input></div>
         <ion-button expand="block" (click)="add()">Add item</ion-button>
       </ion-card-content>
     </ion-card>
@@ -32,10 +32,10 @@
 
     <ion-card *ngIf="purchaseItem" class="purchase-review">
       <ion-card-header><ion-card-title>Confirm purchase</ion-card-title><ion-card-subtitle>Review this item before it creates stock in the {{ household ? household.name + ' shared' : 'personal' }} pantry.</ion-card-subtitle></ion-card-header>
-      <ion-card-content>
+      <ion-card-content class="wtc-form">
         <ion-input label="Ingredient" labelPlacement="stacked" [(ngModel)]="purchase.name"></ion-input>
-        <ion-grid><ion-row><ion-col><ion-input label="Quantity" labelPlacement="stacked" type="number" min="0.001" [(ngModel)]="purchase.quantity"></ion-input></ion-col><ion-col><ion-input label="Unit" labelPlacement="stacked" [(ngModel)]="purchase.unit"></ion-input></ion-col></ion-row></ion-grid>
-        <ion-grid><ion-row><ion-col><ion-input label="Purchased on" labelPlacement="stacked" type="date" [(ngModel)]="purchase.purchase_date"></ion-input></ion-col><ion-col><ion-input label="Printed expiry (optional)" labelPlacement="stacked" type="date" [(ngModel)]="purchase.expiry_date"></ion-input></ion-col></ion-row></ion-grid>
+        <div class="wtc-field-row"><ion-input label="Quantity" labelPlacement="stacked" type="number" min="0.001" [(ngModel)]="purchase.quantity"></ion-input><ion-input label="Unit" labelPlacement="stacked" [(ngModel)]="purchase.unit"></ion-input></div>
+        <div class="wtc-field-row"><ion-input label="Purchased on" labelPlacement="stacked" type="date" [(ngModel)]="purchase.purchase_date"></ion-input><ion-input label="Printed expiry (optional)" labelPlacement="stacked" type="date" [(ngModel)]="purchase.expiry_date"></ion-input></div>
         <ion-select label="Storage" labelPlacement="stacked" [(ngModel)]="purchase.storage_type"><ion-select-option value="unknown">Unknown</ion-select-option><ion-select-option value="room_temperature">Room temperature</ion-select-option><ion-select-option value="refrigerated">Refrigerated</ion-select-option><ion-select-option value="frozen">Frozen</ion-select-option></ion-select>
         <p class="hint">Without a printed expiry, WhatToCook adds a clearly marked estimate and freshness-review date.</p>
         <ion-button expand="block" (click)="confirmPurchase()" [disabled]="confirmingPurchase">{{ confirmingPurchase ? 'Adding stock…' : 'Confirm & add to pantry' }}</ion-button>
@@ -53,7 +53,7 @@
       <p>{{ loadError }}</p>
       <ion-button fill="outline" (click)="load()">Try again</ion-button>
     </section>
-    <ion-list *ngIf="!loading && !loadError" aria-label="Shopping list items">
+    <ion-list *ngIf="!loading && !loadError && items.length" aria-label="Shopping list items">
       <ion-item *ngFor="let item of items">
         <ion-checkbox slot="start" [checked]="item.is_purchased" (ionChange)="toggle(item)" aria-label="Mark {{ item.ingredient_name }} as bought"></ion-checkbox>
         <ion-label [class.done]="item.is_purchased">{{ item.ingredient_name }}<p *ngIf="!item.is_purchased">Buy: {{ item.purchase_quantity || item.quantity || 'Amount to confirm' }} {{ item.purchase_unit || item.unit || '' }}</p><p *ngIf="item.quantity && (item.purchase_quantity || item.purchase_unit) && !item.is_purchased">Recipe need: {{ item.quantity }} {{ item.unit || '' }}</p><p *ngIf="item.purchase_note && !item.is_purchased">{{ item.purchase_note }}</p><p *ngIf="item.is_purchased">{{ item.quantity || '' }} {{ item.unit || '' }}</p></ion-label>
