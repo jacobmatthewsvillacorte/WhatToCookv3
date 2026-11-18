@@ -25,7 +25,7 @@ The test suite uses an in-memory SQLite database, so it does not modify your loc
 
 Use a managed MySQL or PostgreSQL database for the shared API; SQLite is only the local default. Set production values in the hosting provider's secret/configuration store, never in Git: `APP_KEY`, `APP_ENV=production`, `APP_DEBUG=false`, `APP_URL` (HTTPS), `APP_FORCE_HTTPS=true`, `DB_*`, `USDA_API_KEY`, and `CORS_ALLOWED_ORIGINS`.
 
-`CORS_ALLOWED_ORIGINS` is a comma-separated list of approved web client HTTPS origins. Capacitor's local native origins are included separately so a signed Android app can call the same HTTPS API. The API uses bearer tokens, so cross-site cookies are disabled. See the [deployment guide](../docs/DEPLOYMENT_GUIDE.md) for migration, health-check, backup, and rollback steps.
+`CORS_ALLOWED_ORIGINS` is a comma-separated list of approved web client HTTPS origins. Capacitor's local native origins are included separately so a signed Android app can call the same HTTPS API. The API uses bearer tokens, so cross-site cookies are disabled. See the [deployment guide](../docs/01-setup-run-test.md) for migration, health-check, backup, and rollback steps.
 
 ## API authentication
 

@@ -13,6 +13,8 @@ use Illuminate\Validation\ValidationException;
 
 class PantryController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AuthorisesFamilyAccess;
+
     private const PURCHASE_SOURCES = ['supermarket', 'sari_sari_store', 'wet_market', 'homegrown', 'leftover', 'unknown'];
 
     private const STORAGE_TYPES = ['room_temperature', 'refrigerated', 'frozen', 'other', 'unknown'];
@@ -243,13 +245,6 @@ class PantryController extends Controller
         return $data;
     }
 
-
-    private function canUseFamily(Request $request, ?int $familyId): void
-    {
-        if ($familyId !== null) {
-            abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
-        }
-    }
 
     private function requestedFamilyId(Request $request): ?int
     {

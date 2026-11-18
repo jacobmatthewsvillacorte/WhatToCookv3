@@ -79,8 +79,6 @@ Route::middleware(['throttle:api', 'auth:sanctum'])->group(function () {
     Route::post('/meal-plan-batches/{mealPlanBatch}/purchased-items', [MealPlanBatchController::class, 'addPurchasedItems']);
     Route::post('/meal-plan-batches/{mealPlanBatch}/save', [MealPlanBatchController::class, 'save']);
     Route::delete('/meal-plan-batches/{mealPlanBatch}', [MealPlanBatchController::class, 'discard']);
-    // Kept for API compatibility; the app now uses a reviewable draft batch.
-    Route::post('/meal-plans/generate', [MealPlanController::class, 'generate']);
     Route::get('/meal-plans/nutrition', [MealPlanController::class, 'nutritionSummary']);
     Route::apiResource('meal-plans', MealPlanController::class)->except(['show']);
     Route::get('/meal-plans/{mealPlan}/preflight', [MealPlanController::class, 'preflight']);

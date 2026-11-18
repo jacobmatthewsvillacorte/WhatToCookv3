@@ -30,24 +30,21 @@ class MealPlanningApiTest extends TestCase
             ->assertOk()->assertJsonCount(1)->assertJsonPath('0.id', $plan['id']);
     }
 
-    public function test_two_week_generation_filters_unsafe_recipes_and_replaces_open_slots(): void
+    public function test_two_week_batch_generation_filters_unsafe_recipes(): void
     {
         [$owner, , $family] = $this->family();
         $diner = HouseholdProfile::create(['family_id' => $family['id'], 'name' => 'Ana', 'allergies' => ['peanut']]);
         $safe = $this->recipe($owner, 'Safe Recipe', 'Chicken');
         $this->recipe($owner, 'Unsafe Recipe', 'Peanut');
 
-        $this->actingAs($owner, 'sanctum')->postJson('/api/meal-plans/generate', [
-            'family_id' => $family['id'], 'start_date' => '2026-08-03', 'weeks' => 2,
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meal-plan-batches/generate', [
+            'family_id' => $family['id'], 'start_date' => '2026-08-03', 'end_date' => '2026-08-16',
             'diner_profile_ids' => [$diner->id], 'meal_types' => ['dinner'],
-        ])->assertCreated()->assertJsonCount(14, 'meal_plans')->assertJsonPath('meal_plans.0.recipe_id', $safe->id);
-
-        $this->actingAs($owner, 'sanctum')->postJson('/api/meal-plans/generate', [
-            'family_id' => $family['id'], 'start_date' => '2026-08-03', 'weeks' => 1,
-            'diner_profile_ids' => [$diner->id], 'replace_existing' => true,
-        ])->assertCreated()->assertJsonCount(7, 'meal_plans');
-        // The replacement period is one week; the second week from the original plan remains intact.
-        $this->assertDatabaseCount('meal_plans', 14);
+        ])->assertCreated()
+            ->assertJsonCount(14, 'meal_plans')
+            ->assertJsonPath('meal_plans.0.recipe_id', $safe->id)
+            ->assertJsonMissing(['name' => 'Unsafe Recipe']);
+        $this->assertDatabaseMissing('meal_plans', ['recipe_id' => Recipe::where('name', 'Unsafe Recipe')->value('id')]);
     }
 
     public function test_cooking_scales_pantry_deduction_to_planned_servings(): void
@@ -128,15 +125,15 @@ class MealPlanningApiTest extends TestCase
         ])->assertCreated();
     }
 
-    public function test_legacy_generated_plans_apply_vegetarian_taxonomy(): void
+    public function test_batch_generation_applies_vegetarian_taxonomy(): void
     {
         [$owner, , $family] = $this->family();
         $diner = HouseholdProfile::create(['family_id' => $family['id'], 'name' => 'Mika', 'dietary_restrictions' => ['vegetarian']]);
         $safe = $this->recipe($owner, 'Vegetable Munggo', 'mung beans');
         $this->recipe($owner, 'Chicken Tinola', 'chicken');
 
-        $this->actingAs($owner, 'sanctum')->postJson('/api/meal-plans/generate', [
-            'family_id' => $family['id'], 'start_date' => '2026-08-03', 'weeks' => 1,
+        $this->actingAs($owner, 'sanctum')->postJson('/api/meal-plan-batches/generate', [
+            'family_id' => $family['id'], 'start_date' => '2026-08-03', 'end_date' => '2026-08-09',
             'diner_profile_ids' => [$diner->id], 'meal_types' => ['dinner'],
         ])->assertCreated()->assertJsonPath('meal_plans.0.recipe_id', $safe->id);
     }

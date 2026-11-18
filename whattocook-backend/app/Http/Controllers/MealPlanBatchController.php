@@ -26,6 +26,9 @@ use Illuminate\Validation\ValidationException;
  */
 class MealPlanBatchController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AuthorisesFamilyAccess;
+    use \App\Http\Controllers\Concerns\PlansForHousehold;
+
     public function __construct(
         private readonly FoodSafetyTaxonomy $foodSafety,
         private readonly ChildMealPlanner $childPlanner,
@@ -48,15 +51,17 @@ class MealPlanBatchController extends Controller
             $chosen = [];
             $pantry = $this->pantryFor($request, $familyId);
             $history = MealPlan::where('status', 'scheduled')->where('user_id', $request->user()->id)->where('planned_date', '>=', now()->subDays(14))->get();
+            // Loaded once: the catalog and the household roster do not change per day.
+            $catalog = \App\Services\RecipeCatalog::all();
+            $selectableProfiles = $familyId ? HouseholdProfile::selectableForFamily($familyId)->get()->keyBy('id') : collect();
+            $ownProfile = $familyId ? null : $request->user()->profile()->firstOrCreate([]);
             for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
                 $dateKey = $date->toDateString();
                 $dinerIds = $familyId ? ($data['attendance_by_date'][$dateKey] ?? $data['diner_profile_ids']) : [];
-                $profiles = $familyId ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get() : collect();
+                $profiles = $familyId ? $selectableProfiles->only($dinerIds)->values() : collect();
                 $childPlan = $familyId ? $childPlanner->plan($profiles, $date, $data['child_meal_modes'] ?? []) : null;
-                $profilesForDay = $familyId
-                    ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get()
-                    : collect([$request->user()->profile()->firstOrCreate([])]);
-                $recipes = $ranker->rank(Recipe::with('ingredients')->get(), $profilesForDay, $pantry, $history, $data, $chosen, $date);
+                $profilesForDay = $familyId ? $profiles : collect([$ownProfile]);
+                $recipes = $ranker->rank($catalog, $profilesForDay, $pantry, $history, $data, $chosen, $date);
                 if ($recipes->isEmpty()) {
                     throw ValidationException::withMessages(['recipes' => ["No safe recipes are available for {$dateKey} and its selected diners."]]);
                 }
@@ -426,15 +431,6 @@ class MealPlanBatchController extends Controller
             ->values();
     }
 
-    private function pantryFor(Request $request, ?int $familyId)
-    {
-        return PantryItem::whereIn('freshness_status', ['fresh', 'review'])
-            ->where(fn ($query) => $familyId === null
-                ? $query->where('user_id', $request->user()->id)->whereNull('family_id')
-                : $query->where('family_id', $familyId))
-            ->get();
-    }
-
     private function rankedSafeRecipes(Request $request, ?int $familyId, array $dinerIds, ?Carbon $mealDate = null)
     {
         $profiles = $familyId
@@ -451,7 +447,7 @@ class MealPlanBatchController extends Controller
             true,
         ));
 
-        return Recipe::with('ingredients')->get()
+        return \App\Services\RecipeCatalog::all()
             ->filter(fn (Recipe $recipe) => $this->foodSafety->recipeIsSafe($recipe, $profiles))
             ->filter(fn (Recipe $recipe) => ! $hasYoungChild || ! $this->hasYoungChildConflict($recipe))
             ->map(function (Recipe $recipe) use ($likes, $dislikes, $pantryNames) {
@@ -463,27 +459,6 @@ class MealPlanBatchController extends Controller
             $recipe->generation_score = $score;
             return $recipe;
         })->sortByDesc('generation_score')->values();
-    }
-
-    private function hasYoungChildConflict(Recipe $recipe): bool
-    {
-        return $recipe->ingredients->pluck('name')->push($recipe->name)
-            ->contains(fn ($term) => str_contains(strtolower((string) $term), 'alcohol') || str_contains(strtolower((string) $term), 'siling labuyo'));
-    }
-
-    private function validatedDiners(?int $familyId, array $dinerIds): array
-    {
-        $dinerIds = array_values(array_unique(array_map('intval', $dinerIds)));
-        if (! $dinerIds) return [];
-        if (! $familyId || HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->count() !== count($dinerIds)) {
-            throw ValidationException::withMessages(['diner_profile_ids' => ['Each diner must belong to the selected household.']]);
-        }
-        return $dinerIds;
-    }
-
-    private function canUseFamily(Request $request, ?int $familyId): void
-    {
-        if ($familyId) abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
     }
 
     private function authorise(Request $request, MealPlanBatch $batch): void
@@ -515,11 +490,6 @@ class MealPlanBatchController extends Controller
         }
 
         return preg_match('/\d+(?:\.\d+)?/', $value, $match) ? (float) $match[0] : null;
-    }
-
-    private function servingEquivalent(MealPlan $plan): float
-    {
-        return (float) ($plan->serving_equivalents ?? $plan->servings);
     }
 
     /** Aggregate equivalent mass/volume units before comparing the full draft to pantry stock. */

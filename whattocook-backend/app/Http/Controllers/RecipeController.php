@@ -17,13 +17,14 @@ use Illuminate\Support\Facades\Storage;
 
 class RecipeController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AuthorisesFamilyAccess;
+    use \App\Http\Controllers\Concerns\PlansForHousehold;
+
     public function __construct(private readonly FoodSafetyTaxonomy $foodSafety) {}
     public function match(Request $request, Recipe $recipe, RecipeMatcher $matcher)
     {
         $familyId = $request->validate(['family_id' => 'nullable|integer|exists:families,id'])['family_id'] ?? null;
-        if ($familyId !== null) {
-            abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
-        }
+        $this->canUseFamily($request, $familyId);
 
         return response()->json($matcher->match($recipe->load('ingredients'), $this->pantryFor($request, $familyId)));
     }
@@ -31,30 +32,19 @@ class RecipeController extends Controller
     public function recommendations(Request $request, RecipeMatcher $matcher)
     {
         $familyId = $request->validate(['family_id' => 'nullable|integer|exists:families,id'])['family_id'] ?? null;
-        if ($familyId !== null) {
-            abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
-        }
+        $this->canUseFamily($request, $familyId);
 
         $pantry = $this->pantryFor($request, $familyId);
         $blockedIngredients = $familyId === null
             ? $this->profileBlockedIngredients(Profile::where('user_id', $request->user()->id)->first())
             : $this->familyBlockedIngredients($familyId);
-        $results = Recipe::with('ingredients')->get()
+        $results = \App\Services\RecipeCatalog::all()
             ->filter(fn (Recipe $recipe) => ! $this->foodSafety->recipeConflicts($recipe, $blockedIngredients))
             ->map(fn (Recipe $recipe) => $matcher->match($recipe, $pantry))
             ->sortByDesc('match_percentage')
             ->values();
 
         return response()->json(['recommendations' => $results]);
-    }
-
-    private function pantryFor(Request $request, ?int $familyId)
-    {
-        return PantryItem::where(fn ($query) => $familyId === null
-            ? $query->where('user_id', $request->user()->id)->whereNull('family_id')
-            : $query->where('family_id', $familyId))
-            ->whereIn('freshness_status', ['fresh', 'review'])
-            ->get();
     }
 
     private function familyBlockedIngredients(int $familyId): array
@@ -140,13 +130,6 @@ class RecipeController extends Controller
             ->values());
 
         return response()->json($results);
-    }
-
-    private function canUseFamily(Request $request, ?int $familyId): void
-    {
-        if ($familyId !== null) {
-            abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
-        }
     }
 
     private function pantryForSearch(Request $request, ?int $familyId)

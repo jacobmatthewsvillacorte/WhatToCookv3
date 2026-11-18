@@ -68,18 +68,76 @@ class RecipeMatcher
     /** Returns stock in the recipe ingredient's unit for plan preview and cooking preflight. */
     public function availabilityFor(string $ingredientName, ?string $unit, Collection $pantry): array
     {
-        $key = $this->normalise($ingredientName);
-        $matchingItems = $pantry->filter(fn (PantryItem $item) => $this->isIngredientMatch($key, $this->normalise($item->name)));
-        $compatibleItems = $this->matchingPantryItemsFor($ingredientName, $unit, $pantry);
+        $matchingItems = $this->matchingLots($ingredientName, $pantry);
+        $compatibleItems = array_values(array_filter(
+            $matchingItems,
+            fn (PantryItem $item) => $this->unitsAreCompatible($unit, $item->unit) || $this->packageConversionFor($item, $unit) !== null,
+        ));
+        $quantity = 0.0;
+        foreach ($compatibleItems as $item) {
+            $quantity += $this->quantityInUnit($item, $unit);
+        }
+
+        $packageItems = [];
+        $units = [];
+        foreach ($matchingItems as $item) {
+            if ($item->unit) {
+                $units[$item->unit] = $item->unit;
+            }
+            if (! $this->unitsAreCompatible($unit, $item->unit)) {
+                $packageItems[] = ['id' => $item->id, 'name' => $item->name, 'quantity' => $item->quantity_value, 'unit' => $item->unit];
+            }
+        }
 
         return [
-            'has_stock' => $matchingItems->isNotEmpty(),
-            'quantity' => $compatibleItems->sum(fn (PantryItem $item) => $this->quantityInUnit($item, $unit)),
-            'has_compatible_unit' => $compatibleItems->isNotEmpty(),
-            'pantry_units' => $matchingItems->pluck('unit')->filter()->unique()->values()->all(),
-            'package_items' => $matchingItems->filter(fn (PantryItem $item) => ! $this->unitsAreCompatible($unit, $item->unit))
-                ->map(fn (PantryItem $item) => ['id' => $item->id, 'name' => $item->name, 'quantity' => $item->quantity_value, 'unit' => $item->unit])->values()->all(),
+            'has_stock' => $matchingItems !== [],
+            'quantity' => $quantity,
+            'has_compatible_unit' => $compatibleItems !== [],
+            'pantry_units' => array_values($units),
+            'package_items' => $packageItems,
         ];
+    }
+
+    /**
+     * Pantry lots whose name matches the ingredient. The pantry is indexed once
+     * (normalised name + word list as plain arrays) because this runs for every
+     * recipe ingredient x every pantry row; Eloquent attribute access and
+     * collection closures in that inner loop were the dominant latency cost.
+     *
+     * @return array<int, PantryItem>
+     */
+    private function matchingLots(string $ingredientName, Collection $pantry): array
+    {
+        $key = $this->normalise($ingredientName);
+        $words = array_filter(explode(' ', $key), fn (string $word) => strlen($word) > 2);
+        $matches = [];
+        foreach ($this->indexPantry($pantry) as [$item, $name, $nameWords]) {
+            if ($key === $name || str_contains($key, $name) || str_contains($name, $key) || array_intersect($words, $nameWords) !== []) {
+                $matches[] = $item;
+            }
+        }
+
+        return $matches;
+    }
+
+    /** @var array<int, array{0: Collection, 1: int, 2: array}> Pantry indexes keyed by collection object id. */
+    private array $pantryIndexes = [];
+
+    private function indexPantry(Collection $pantry): array
+    {
+        $id = spl_object_id($pantry);
+        $cached = $this->pantryIndexes[$id] ?? null;
+        // Re-index if this id now belongs to a different or changed collection.
+        if ($cached === null || $cached[0] !== $pantry || $cached[1] !== $pantry->count()) {
+            $rows = [];
+            foreach ($pantry as $item) {
+                $name = $this->normalise((string) $item->name);
+                $rows[] = [$item, $name, explode(' ', $name)];
+            }
+            $cached = $this->pantryIndexes[$id] = [$pantry, $pantry->count(), $rows];
+        }
+
+        return $cached[2];
     }
 
     /**
@@ -89,10 +147,7 @@ class RecipeMatcher
      */
     public function matchingPantryItemsFor(string $ingredientName, ?string $unit, Collection $pantry): Collection
     {
-        $key = $this->normalise($ingredientName);
-
-        return $pantry
-            ->filter(fn (PantryItem $item) => $this->isIngredientMatch($key, $this->normalise($item->name)))
+        return collect($this->matchingLots($ingredientName, $pantry))
             ->filter(fn (PantryItem $item) => $this->unitsAreCompatible($unit, $item->unit) || $this->packageConversionFor($item, $unit) !== null)
             ->values();
     }
@@ -135,9 +190,12 @@ class RecipeMatcher
         return $from !== null && $to !== null ? $quantity * ($from / $to) : $quantity;
     }
 
+    /** @var array<string, string> Memo: matching normalises the same few names thousands of times per request. */
+    private array $normalised = [];
+
     private function normalise(string $name): string
     {
-        return strtolower(trim(preg_replace('/\s+/', ' ', $name)));
+        return $this->normalised[$name] ??= strtolower(trim(preg_replace('/\s+/', ' ', $name)));
     }
 
     private function number(null|string|int|float $value): ?float
@@ -157,14 +215,6 @@ class RecipeMatcher
         }
 
         return preg_match('/\d+(?:\.\d+)?/', $value, $match) ? (float) $match[0] : null;
-    }
-
-    private function isIngredientMatch(string $recipeIngredient, string $pantryIngredient): bool
-    {
-        return $recipeIngredient === $pantryIngredient
-            || str_contains($recipeIngredient, $pantryIngredient)
-            || str_contains($pantryIngredient, $recipeIngredient)
-            || collect(explode(' ', $recipeIngredient))->contains(fn (string $word) => strlen($word) > 2 && in_array($word, explode(' ', $pantryIngredient), true));
     }
 
     private function substitutesFor(string $ingredient): array
@@ -187,15 +237,24 @@ class RecipeMatcher
         return $this->unitGroup($recipeUnit) === $this->unitGroup($pantryUnit);
     }
 
+    /** Package conversions already loaded by this instance, keyed by scope|ingredient|package unit. */
+    private array $conversionCache = [];
+
     private function packageConversionFor(PantryItem $item, ?string $recipeUnit): ?IngredientPackageConversion
     {
         if (! $recipeUnit || $this->unitsAreCompatible($recipeUnit, $item->unit)) return null;
-        return IngredientPackageConversion::query()
+
+        // One query per (scope, ingredient, package unit) per request instead of
+        // one per pantry item per recipe ingredient.
+        $key = implode('|', [$item->user_id, $item->family_id, $this->normalise($item->name), $this->normalise((string) $item->unit)]);
+        $this->conversionCache[$key] ??= IngredientPackageConversion::query()
             ->where('user_id', $item->user_id)
             ->where('family_id', $item->family_id)
             ->where('ingredient_name', $this->normalise($item->name))
             ->where('package_unit', $this->normalise((string) $item->unit))
-            ->get()
+            ->get();
+
+        return $this->conversionCache[$key]
             ->first(fn (IngredientPackageConversion $conversion) => $this->unitsAreCompatible($recipeUnit, $conversion->amount_unit));
     }
 

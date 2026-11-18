@@ -8,6 +8,8 @@ use Illuminate\Http\Request;
 
 class MealHistoryController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AuthorisesFamilyAccess;
+
     public function index(Request $request)
     {
         return response()->json($this->visibleTo($request)->with('recipe')->latest('prepared_at')->get());
@@ -49,13 +51,6 @@ class MealHistoryController extends Controller
     {
         abort_unless($history->user_id === $request->user()->id, 403);
         $this->canUseFamily($request, $history->family_id);
-    }
-
-    private function canUseFamily(Request $request, ?int $familyId): void
-    {
-        if ($familyId) {
-            abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
-        }
     }
 
     private function visibleTo(Request $request)

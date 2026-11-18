@@ -21,6 +21,9 @@ use Illuminate\Validation\ValidationException;
 
 class MealPlanController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AuthorisesFamilyAccess;
+    use \App\Http\Controllers\Concerns\PlansForHousehold;
+
     public function __construct(
         private readonly FoodSafetyTaxonomy $foodSafety,
         private readonly ChildMealPlanner $childPlanner,
@@ -297,84 +300,6 @@ class MealPlanController extends Controller
         ], 201);
     }
 
-    /** Create profile-safe meals for every selected slot in a chosen date range. */
-    public function generate(Request $request)
-    {
-        $data = $request->validate([
-            'family_id' => 'nullable|integer|exists:families,id',
-            'start_date' => 'required|date',
-            'end_date' => 'nullable|date|after_or_equal:start_date|required_without:weeks',
-            'weeks' => 'nullable|integer|min:1|max:8|required_without:end_date',
-            'meal_types' => 'sometimes|array|min:1',
-            'meal_types.*' => 'string|in:breakfast,lunch,dinner',
-            'diner_profile_ids' => 'sometimes|array',
-            'diner_profile_ids.*' => 'integer|distinct',
-            'servings' => 'nullable|integer|min:1|max:100',
-            'replace_existing' => 'sometimes|boolean',
-        ]);
-        $familyId = $data['family_id'] ?? null;
-        $this->canUseFamily($request, $familyId);
-        $dinerIds = $this->validatedDiners($familyId, $data['diner_profile_ids'] ?? []);
-        if ($familyId !== null && empty($dinerIds)) {
-            throw ValidationException::withMessages(['diner_profile_ids' => ['Choose at least one household diner.']]);
-        }
-
-        $start = Carbon::parse($data['start_date'])->startOfDay();
-        $end = isset($data['end_date'])
-            ? Carbon::parse($data['end_date'])->startOfDay()
-            : $start->copy()->addDays(($data['weeks'] * 7) - 1);
-        if ($start->diffInDays($end) > 55) {
-            throw ValidationException::withMessages(['end_date' => ['A generated plan can cover up to 56 days (8 weeks).']]);
-        }
-        $mealTypes = $data['meal_types'] ?? ['dinner'];
-        $recipes = $this->rankedSafeRecipesFor($request, $familyId, $dinerIds);
-        if ($recipes->isEmpty()) {
-            throw ValidationException::withMessages(['recipes' => ['No recipes are compatible with the selected diners.']]);
-        }
-        $servings = $data['servings'] ?? (empty($dinerIds) ? 1 : count($dinerIds));
-
-        $plans = DB::transaction(function () use ($request, $data, $familyId, $dinerIds, $start, $end, $mealTypes, $recipes, $servings) {
-            $query = MealPlan::query()->where('family_id', $familyId)
-                ->whereDate('planned_date', '>=', $start->toDateString())
-                ->whereDate('planned_date', '<=', $end->toDateString());
-            if ($familyId === null) {
-                $query->where('user_id', $request->user()->id);
-            }
-            if ($data['replace_existing'] ?? false) {
-                $query->whereNull('completed_at')->delete();
-            }
-            $occupiedQuery = MealPlan::query()->where('family_id', $familyId)
-                ->whereDate('planned_date', '>=', $start->toDateString())
-                ->whereDate('planned_date', '<=', $end->toDateString());
-            if ($familyId === null) {
-                $occupiedQuery->where('user_id', $request->user()->id);
-            }
-            $occupied = $occupiedQuery
-                ->get(['planned_date', 'meal_type'])->mapWithKeys(fn ($plan) => [$plan->planned_date->format('Y-m-d').'|'.$plan->meal_type => true]);
-            $created = collect();
-            $slot = 0;
-            for ($date = $start->copy(); $date->lte($end); $date->addDay()) {
-                foreach ($mealTypes as $mealType) {
-                    if (isset($occupied[$date->format('Y-m-d').'|'.$mealType])) {
-                        continue;
-                    }
-                    $created->push(MealPlan::create([
-                        'user_id' => $request->user()->id, 'family_id' => $familyId,
-                        'recipe_id' => $recipes[$slot++ % $recipes->count()]->id,
-                        'planned_date' => $date->toDateString(), 'meal_type' => $mealType,
-                        'servings' => $servings, 'diner_profile_ids' => $dinerIds ?: null,
-                    ]));
-                }
-            }
-
-            return $created;
-        });
-
-        $plans = MealPlan::whereKey($plans->pluck('id'))->with('recipe.ingredients')->orderBy('planned_date')->orderBy('meal_type')->get();
-
-        return response()->json(['meal_plans' => $plans, 'start_date' => $start->toDateString(), 'end_date' => $end->toDateString()], 201);
-    }
-
     private function data(Request $request, bool $partial = false, ?MealPlan $existing = null): array
     {
         $p = $partial ? 'sometimes|' : 'required|';
@@ -445,13 +370,6 @@ class MealPlanController extends Controller
             $this->canUseFamily($request, $plan->family_id);
         } else {
             abort_unless($plan->user_id === $request->user()->id, 403);
-        }
-    }
-
-    private function canUseFamily(Request $request, ?int $familyId): void
-    {
-        if ($familyId) {
-            abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
         }
     }
 
@@ -530,24 +448,6 @@ class MealPlanController extends Controller
         ]);
     }
 
-    private function servingEquivalent(MealPlan $plan): float
-    {
-        return (float) ($plan->serving_equivalents ?? $plan->servings);
-    }
-
-    private function validatedDiners(?int $familyId, array $dinerIds): array
-    {
-        $dinerIds = array_values(array_unique(array_map('intval', $dinerIds)));
-        if (! $dinerIds) {
-            return [];
-        }
-        if (! $familyId || HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->count() !== count($dinerIds)) {
-            throw ValidationException::withMessages(['diner_profile_ids' => ['Each diner must belong to the selected household.']]);
-        }
-
-        return $dinerIds;
-    }
-
     private function safeRecipesFor(Request $request, ?int $familyId, array $dinerIds, ?Carbon $mealDate = null)
     {
         $profiles = $familyId ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get() : collect([Profile::where('user_id', $request->user()->id)->first()]);
@@ -557,45 +457,10 @@ class MealPlanController extends Controller
             ['0-5_months', '6-11_months', '12-23_months', '2-5_years'],
             true,
         ));
-        return Recipe::with('ingredients')->get()
+        return \App\Services\RecipeCatalog::all()
             ->filter(fn (Recipe $recipe) => $this->foodSafety->recipeIsSafe($recipe, $profiles))
             ->filter(fn (Recipe $recipe) => ! $hasYoungChild || ! $this->hasYoungChildConflict($recipe))
             ->values();
     }
 
-    private function hasYoungChildConflict(Recipe $recipe): bool
-    {
-        return $recipe->ingredients->pluck('name')->push($recipe->name)
-            ->contains(fn ($term) => str_contains(strtolower((string) $term), 'alcohol') || str_contains(strtolower((string) $term), 'siling labuyo'));
-    }
-
-    /**
-     * Explainable recommendation algorithm: first remove unsafe dishes, then
-     * rank the remainder by pantry coverage and stated likes/dislikes.
-     */
-    private function rankedSafeRecipesFor(Request $request, ?int $familyId, array $dinerIds)
-    {
-        $profiles = $familyId
-            ? HouseholdProfile::selectableForFamily($familyId)->whereIn('id', $dinerIds)->get()
-            : collect([Profile::where('user_id', $request->user()->id)->first()])->filter();
-        $likes = $profiles->flatMap(fn ($profile) => $profile->likes ?? [])->map(fn ($value) => strtolower($value))->filter()->unique()->values();
-        $dislikes = $profiles->flatMap(fn ($profile) => $profile->dislikes ?? [])->map(fn ($value) => strtolower($value))->filter()->unique()->values();
-        $pantry = PantryItem::whereIn('freshness_status', ['fresh', 'review'])
-            ->where(fn ($query) => $familyId === null
-                ? $query->where('user_id', $request->user()->id)->whereNull('family_id')
-                : $query->where('family_id', $familyId))
-            ->pluck('name')->map(fn ($name) => strtolower($name));
-
-        return $this->safeRecipesFor($request, $familyId, $dinerIds)
-            ->map(function (Recipe $recipe) use ($likes, $dislikes, $pantry) {
-                $terms = $recipe->ingredients->pluck('name')->push($recipe->name)->map(fn ($value) => strtolower($value));
-                $ingredients = $recipe->ingredients->pluck('name')->map(fn ($value) => strtolower($value));
-                $pantryHits = $ingredients->filter(fn ($name) => $pantry->contains(fn ($item) => str_contains($item, $name) || str_contains($name, $item)))->count();
-                $score = $ingredients->isEmpty() ? 0 : ($pantryHits / $ingredients->count()) * 40;
-                $score += $likes->filter(fn ($like) => $terms->contains(fn ($term) => str_contains($term, $like)))->count() * 25;
-                $score -= $dislikes->filter(fn ($dislike) => $terms->contains(fn ($term) => str_contains($term, $dislike)))->count() * 20;
-                $recipe->generation_score = $score;
-                return $recipe;
-            })->sortByDesc('generation_score')->values();
-    }
 }

@@ -15,6 +15,8 @@ use Illuminate\Validation\Rule;
 
 class ShoppingListController extends Controller
 {
+    use \App\Http\Controllers\Concerns\AuthorisesFamilyAccess;
+
     public function index(Request $request)
     {
         return response()->json($this->visibleTo($request)->get());
@@ -119,13 +121,6 @@ class ShoppingListController extends Controller
 
             return;
         } abort_unless($item->user_id === $request->user()->id, 403);
-    }
-
-    private function canUseFamily(Request $request, ?int $familyId): void
-    {
-        if ($familyId) {
-            abort_unless(FamilyMember::where(['family_id' => $familyId, 'user_id' => $request->user()->id, 'status' => 'accepted'])->exists(), 403);
-        }
     }
 
     private function visibleTo(Request $request)
