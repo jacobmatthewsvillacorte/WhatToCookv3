@@ -8,17 +8,9 @@
       </div>
     </div>
 
-    <section *ngIf="loading" class="wtc-state wtc-state--loading wtc-state--compact" role="status" aria-live="polite">
-      <ion-spinner aria-label="Checking household invitations"></ion-spinner>
-      <p>Checking household invitations.</p>
-    </section>
+    <app-state *ngIf="loading" kind="loading" [compact]="true" message="Checking household invitations." spinnerLabel="Checking household invitations"></app-state>
 
-    <section *ngIf="!loading && invitationsError" class="wtc-state wtc-state--error wtc-state--compact" role="alert">
-      <ion-icon class="wtc-state__icon" name="alert-circle-outline" aria-hidden="true"></ion-icon>
-      <h2>Invitations are unavailable</h2>
-      <p>{{ invitationsError }}</p>
-      <ion-button fill="outline" size="small" (click)="loadInvitations()">Try again</ion-button>
-    </section>
+    <app-state *ngIf="!loading && invitationsError" kind="error" [compact]="true" heading="Invitations are unavailable" [message]="invitationsError" actionLabel="Try again" (action)="loadInvitations()"></app-state>
 
     <ion-card *ngIf="!loading && !invitationsError && invitations.length">
       <ion-card-header>
@@ -33,10 +25,7 @@
       </ion-list>
     </ion-card>
 
-    <section *ngIf="!loading && !invitationsError && !invitations.length" class="wtc-state wtc-state--empty wtc-state--compact">
-      <ion-icon class="wtc-state__icon" name="mail-open-outline" aria-hidden="true"></ion-icon>
-      <p>No household invitations right now.</p>
-    </section>
+    <app-state *ngIf="!loading && !invitationsError && !invitations.length" kind="empty" [compact]="true" iconName="mail-open-outline" message="No household invitations right now."></app-state>
 
     <p *ngIf="message" class="wtc-notice" role="status" aria-live="polite">{{ message }}</p>
 

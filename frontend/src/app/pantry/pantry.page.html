@@ -29,12 +29,8 @@
 
     <p class="wtc-notice" *ngIf="message" role="status">{{ message }}</p>
 
-    <section *ngIf="loading" class="wtc-state wtc-state--loading" role="status">
-      <ion-spinner aria-label="Loading pantry inventory"></ion-spinner><h2>Loading your pantry</h2>
-    </section>
-    <section *ngIf="!loading && pantryLoadError" class="wtc-state wtc-state--error" role="alert">
-      <ion-icon class="wtc-state__icon" name="alert-circle-outline"></ion-icon><h2>We couldn't load your pantry</h2><p>{{ pantryLoadError }}</p><ion-button fill="outline" (click)="loadFamilies()">Try again</ion-button>
-    </section>
+    <app-state *ngIf="loading" kind="loading" heading="Loading your pantry" spinnerLabel="Loading pantry inventory"></app-state>
+    <app-state *ngIf="!loading && pantryLoadError" kind="error" heading="We couldn't load your pantry" [message]="pantryLoadError" actionLabel="Try again" (action)="loadFamilies()"></app-state>
 
     <ng-container *ngIf="!loading && !pantryLoadError">
       <ng-container *ngFor="let group of inventoryGroups()">

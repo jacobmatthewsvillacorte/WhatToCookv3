@@ -34,7 +34,7 @@ import { IonicModule } from '@ionic/angular';
       <ng-template #icon>
         <ion-icon *ngIf="iconName || kind === 'error'" class="wtc-state__icon" [name]="iconName || 'alert-circle-outline'" aria-hidden="true"></ion-icon>
       </ng-template>
-      <h2>{{ heading }}</h2>
+      <h2 *ngIf="heading">{{ heading }}</h2>
       <p *ngIf="message">{{ message }}</p>
       <ion-button *ngIf="actionLabel" fill="outline" (click)="action.emit()">{{ actionLabel }}</ion-button>
       <ng-content></ng-content>

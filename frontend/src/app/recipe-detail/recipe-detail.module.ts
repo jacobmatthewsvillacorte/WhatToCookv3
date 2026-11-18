@@ -4,4 +4,5 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { RecipeDetailPageRoutingModule } from './recipe-detail-routing.module';
 import { RecipeDetailPage } from './recipe-detail.page';
-@NgModule({ imports: [CommonModule, FormsModule, IonicModule, RecipeDetailPageRoutingModule], declarations: [RecipeDetailPage] }) export class RecipeDetailPageModule {}
+import { StateComponent } from '../shared/state/state.component';
+@NgModule({ imports: [StateComponent, CommonModule, FormsModule, IonicModule, RecipeDetailPageRoutingModule], declarations: [RecipeDetailPage] }) export class RecipeDetailPageModule {}

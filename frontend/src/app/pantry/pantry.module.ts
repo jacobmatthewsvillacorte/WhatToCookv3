@@ -5,9 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { PantryPage } from './pantry.page';
 
 import { PantryPageRoutingModule } from './pantry-routing.module';
+import { StateComponent } from '../shared/state/state.component';
 
 @NgModule({
-  imports: [
+  imports: [StateComponent, 
     IonicModule,
     CommonModule,
     FormsModule,

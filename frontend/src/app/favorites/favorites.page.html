@@ -15,12 +15,9 @@
         <ion-card-content><p>{{ recipe.description }}</p><ion-button fill="outline" (click)="open(recipe)">View recipe</ion-button><ion-button fill="clear" color="danger" (click)="remove(recipe)">Remove</ion-button></ion-card-content>
       </ion-card>
 
-      <section class="wtc-state wtc-state--empty" *ngIf="!recipes.length">
-        <ion-icon class="wtc-state__icon" name="heart-outline" aria-hidden="true"></ion-icon>
-        <h2>No saved recipes</h2>
-        <p>Save recipes from Discover to find them here.</p>
+      <app-state *ngIf="!recipes.length" kind="empty" iconName="heart-outline" heading="No saved recipes" message="Save recipes from Discover to find them here.">
         <ion-button fill="outline" routerLink="/tabs/recipes">Browse recipes</ion-button>
-      </section>
+      </app-state>
     </ng-container>
   </main>
 </ion-content>

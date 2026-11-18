@@ -53,12 +53,9 @@
         <ion-button fill="clear" color="danger" slot="end" (click)="remove(item)" aria-label="Remove {{ item.ingredient_name }}"><ion-icon name="trash-outline"></ion-icon></ion-button>
       </ion-item>
     </ion-list>
-    <section class="wtc-state wtc-state--empty" *ngIf="!loading && !loadError && !items.length">
-      <ion-icon class="wtc-state__icon" name="cart-outline" aria-hidden="true"></ion-icon>
-      <h2>Your shopping list is empty</h2>
-      <p>Add an ingredient or add missing recipe ingredients from Recipes.</p>
-      <ion-button fill="outline" routerLink="/tabs/recipes">Browse recipes</ion-button>
-    </section>
+    <app-state *ngIf="!loading && !loadError && !items.length" kind="empty" iconName="cart-outline" heading="Your shopping list is empty" message="Add an ingredient or add missing recipe ingredients from Recipes.">
+        <ion-button fill="outline" routerLink="/tabs/recipes">Browse recipes</ion-button>
+      </app-state>
   </main>
 </ion-content>
 

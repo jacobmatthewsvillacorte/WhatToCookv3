@@ -30,7 +30,7 @@
 }
 
 .page ion-list {
-  border-radius: 16px;
+  border-radius: var(--wtc-radius-lg);
   overflow: hidden;
 }
 

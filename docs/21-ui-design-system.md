@@ -66,15 +66,22 @@ Second pass (all verified on screenshots, light and dark, 390 px):
 
 - **One page container.** Every page root now carries `page` plus `wtc-tab-page` or `wtc-direct-page` (meal plan adds `wtc-page--wide`). The per-page `.page { max-width; padding }` rules and the three narrow-phone `.page` padding overrides were deleted, so every screen has the same 20 px gutter. Widths that changed: meal details, plan review, plan setup, meal history and shopping list now use the standard 44 rem; cooking lost its private 46 rem.
 - **Shared eyebrow, notice and section heading.** `.eyebrow`, `.message`, `.notice`, `.detail-message` and `.section-heading` were redefined 3 to 14 times each. They are now `wtc-eyebrow--brand`, `wtc-notice` (with `--danger` for errors and `--warning` for cautions) and `wtc-section-heading`; the per-page copies are gone.
-- **`<app-state>` component** (`src/app/shared/state/`) replaces the repeated five-line loading and error blocks on 7 pages (14 blocks). It renders the same markup as `.wtc-state`, so it looks identical. Convert the remaining blocks (empty states with custom buttons in `pantry`, `more`, `cooking`, `recipe-detail`) when you next touch those pages; project extra buttons as content.
+- **`<app-state>` component** (`src/app/shared/state/`) replaces every loading, error and empty block (27 across 11 pages). It renders the same markup as `.wtc-state`, so it looks identical. Use it for new screens; project extra buttons (a "Browse recipes" link) as content.
 - **Recipe placeholder** (`assets/shapes.svg`) was a loud multicolour shape set. It is now a calm plate-and-cutlery tint of the brand colour that works on light and dark surfaces.
 - **Off-grid values** within 1 px of a token (3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25 px) were rounded to the nearest token. About 150 declarations with px remain, mostly legitimate fixed sizes (widths, heights, icon boxes).
 
-Not done (needs a design decision or is a larger refactor):
+Third pass:
 
-- **Stacked form labels are small** (about 10-11 px) because Ionic scales them inside the control. Fixing it needs Ionic's label parts or a different label pattern.
-- `plan-review` (about 450 lines) and `plan-setup` (about 400 lines) still hold repeated card and day-navigator blocks that should become shared components. They are used in at most two places each today, so extraction is optional.
-- Remaining 16 px and 28 px radii and other odd sizes have no matching token; add tokens if they are intentional.
+- **Form text is 16 px.** Ionic scales stacked labels by 0.75, so the old 14 px controls gave 10.5 px labels. Controls are now 16 px (labels 12 px), which also stops iOS zooming into a focused field. The rule needs `.hydrated` in the selector because Ionic sets its size on a scoped class that beats a plain element selector.
+- **Every state block** (loading, error, empty) now uses `<app-state>`.
+- **Remaining off-grid values** are mostly intentional (22/30 px headline sizes, `--padding-start` tweaks on chips, a 116 px bottom inset for the pantry's sticky bar). 16 px radii were rounded to `--wtc-radius-lg`.
+
+Not extracted, deliberately: `plan-review` and `plan-setup` are long (about 450 and 400 lines of TypeScript) but their templates do not repeat blocks, so there is no shared component to pull out. Their size is view logic in the class; split that when you next change behaviour there, not for looks.
+
+Open questions for a designer, not engineers:
+
+- Is the generic plate-and-cutlery placeholder acceptable, or do recipes need real photos?
+- Should the 16 px and 28 px radii used by a few cards become tokens?
 
 ## How to check a UI change
 

@@ -31,7 +31,7 @@
 }
 
 .page ion-card {
-  border-radius: 16px;
+  border-radius: var(--wtc-radius-lg);
 }
 
 .page ion-textarea {

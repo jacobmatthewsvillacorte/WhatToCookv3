@@ -2,8 +2,10 @@
 
 <ion-content>
   <main class="recipe-detail page wtc-direct-page">
-    <section *ngIf="loading" class="wtc-state wtc-state--loading" role="status"><ion-spinner aria-label="Loading recipe"></ion-spinner><h2>Preparing your recipe</h2></section>
-    <section *ngIf="!loading && message && !recipe" class="wtc-state wtc-state--error" role="alert"><ion-icon class="wtc-state__icon" name="alert-circle-outline"></ion-icon><h2>Recipe unavailable</h2><p>{{ message }}</p><ion-button routerLink="/tabs/recipes" fill="outline">Back to recipes</ion-button></section>
+    <app-state *ngIf="loading" kind="loading" heading="Preparing your recipe" spinnerLabel="Loading recipe"></app-state>
+    <app-state *ngIf="!loading && message && !recipe" kind="error" heading="Recipe unavailable" [message]="message">
+      <ion-button routerLink="/tabs/recipes" fill="outline">Back to recipes</ion-button>
+    </app-state>
     <p *ngIf="recipe && message" class="wtc-notice wtc-notice--danger" role="status">{{ message }}</p>
 
     <ng-container *ngIf="recipe">

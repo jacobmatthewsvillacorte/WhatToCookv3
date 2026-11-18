@@ -7,8 +7,8 @@
 
 <ion-content>
   <main class="page wtc-direct-page cooking-page">
-    <div *ngIf="loading" class="wtc-state wtc-state--loading"><ion-spinner aria-label="Loading cooking mode"></ion-spinner><p>Getting your cooking session ready...</p></div>
-    <div *ngIf="message" class="wtc-state wtc-state--error wtc-state--compact"><ion-icon name="alert-circle-outline" class="wtc-state__icon" aria-hidden="true"></ion-icon><p>{{ message }}</p></div>
+    <app-state *ngIf="loading" kind="loading" message="Getting your cooking session ready..." spinnerLabel="Loading cooking mode"></app-state>
+    <app-state *ngIf="message" kind="error" [compact]="true" [message]="message"></app-state>
 
     <ng-container *ngIf="!loading && preflight">
       <section class="session-header" aria-label="Recipe and cooking progress">
@@ -28,7 +28,7 @@
         <p class="step-card__eyebrow">Instruction {{ stepIndex + 1 }}</p>
         <p class="step-card__instruction">{{ currentStep }}</p>
       </article>
-      <ng-template #noSteps><section class="wtc-state wtc-state--empty"><ion-icon name="list-outline" class="wtc-state__icon" aria-hidden="true"></ion-icon><h2>No steps yet</h2><p>This recipe has no usable instruction steps yet.</p></section></ng-template>
+      <ng-template #noSteps><app-state kind="empty" iconName="list-outline" heading="No steps yet" message="This recipe has no usable instruction steps yet."></app-state></ng-template>
 
       <section class="timer-card" aria-labelledby="timer-heading">
         <div class="section-title"><div><p class="wtc-eyebrow">Stay on track</p><h2 id="timer-heading">Kitchen timer</h2></div><ion-icon name="timer-outline" aria-hidden="true"></ion-icon></div>

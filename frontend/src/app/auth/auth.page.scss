@@ -4,7 +4,7 @@
 .brand p { margin:var(--wtc-space-3) 0 26px; font-weight:800; font-size:var(--wtc-font-size-md); }
 .brand h1 { font-size:34px; line-height:1.08; letter-spacing:-.8px; margin:0 0 14px; }
 .brand span { color:var(--wtc-color-text-muted); line-height:1.45; }
-.brand-mark { width:48px; height:48px; display:grid; place-items:center; border-radius:16px; color:var(--ion-color-primary-contrast); background:var(--ion-color-primary); font-size:25px; }
+.brand-mark { width:48px; height:48px; display:grid; place-items:center; border-radius:var(--wtc-radius-lg); color:var(--ion-color-primary-contrast); background:var(--ion-color-primary); font-size:25px; }
 .auth-card { border-radius:var(--wtc-radius-xl); padding:10px 18px 18px; background:var(--wtc-color-surface); box-shadow:var(--wtc-shadow-card); }
 .mode-toggle { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--wtc-color-border); margin-bottom:var(--wtc-space-3); }
 .mode-toggle button { padding:14px 6px var(--wtc-space-3); border:0; background:transparent; color:var(--wtc-color-text-muted); font:inherit; }

@@ -326,6 +326,14 @@ ion-select {
   transition: border-color var(--wtc-transition-fast), box-shadow var(--wtc-transition-fast);
 }
 
+/* 16px keeps stacked labels at 12px (Ionic scales them by 0.75) and stops iOS zooming on focus.
+ * Ionic sets the size on a scoped class, so the selector needs .hydrated to win. */
+ion-input.hydrated,
+ion-textarea.hydrated,
+ion-select.hydrated {
+  font-size: var(--wtc-font-size-base);
+}
+
 ion-input,
 ion-select {
   min-height: 3rem;

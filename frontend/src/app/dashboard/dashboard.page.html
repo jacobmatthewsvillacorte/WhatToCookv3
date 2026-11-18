@@ -93,12 +93,9 @@
           </a>
         </div>
         <ng-template #noRecommendations>
-          <section class="wtc-state wtc-state--empty wtc-state--compact">
-            <ion-icon class="wtc-state__icon" name="restaurant-outline" aria-hidden="true"></ion-icon>
-            <h2>No meal ideas yet</h2>
-            <p>Add recipes and pantry items to receive recommendations.</p>
+          <app-state kind="empty" [compact]="true" iconName="restaurant-outline" heading="No meal ideas yet" message="Add recipes and pantry items to receive recommendations.">
             <ion-button fill="outline" routerLink="/tabs/recipes">Browse recipes</ion-button>
-          </section>
+          </app-state>
         </ng-template>
       </section>
     </ng-container>

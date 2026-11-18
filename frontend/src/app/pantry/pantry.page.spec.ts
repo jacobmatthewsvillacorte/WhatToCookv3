@@ -11,6 +11,7 @@ import { UseAmountModalComponent } from './use-amount-modal.component';
 import { PantryChangeService } from '../services/pantry-change.service';
 import { ApiService, PantryInputCandidate } from '../services/api.service';
 import { of, Subject, throwError } from 'rxjs';
+import { StateComponent } from '../shared/state/state.component';
 
 describe('PantryPage', () => {
   let component: PantryPage;
@@ -19,7 +20,7 @@ describe('PantryPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [PantryPage],
-      imports: [IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule]
+      imports: [StateComponent, IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(PantryPage);

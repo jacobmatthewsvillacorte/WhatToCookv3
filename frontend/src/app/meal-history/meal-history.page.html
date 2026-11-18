@@ -19,12 +19,9 @@
         <ion-item *ngFor="let item of items"><ion-icon name="restaurant-outline" slot="start"></ion-icon><ion-label><h2>{{ recipeName(item) }}</h2><p>{{ item.prepared_at | date:'mediumDate' }} &middot; {{ item.servings || 1 }} servings</p><p *ngIf="item.notes">{{ item.notes }}</p></ion-label></ion-item>
       </ion-list>
 
-      <section class="wtc-state wtc-state--empty" *ngIf="!items.length">
-        <ion-icon class="wtc-state__icon" name="time-outline" aria-hidden="true"></ion-icon>
-        <h2>No meals cooked yet</h2>
-        <p>Cook a scheduled meal to start your history.</p>
+      <app-state *ngIf="!items.length" kind="empty" iconName="time-outline" heading="No meals cooked yet" message="Cook a scheduled meal to start your history.">
         <ion-button fill="outline" routerLink="/tabs/meal-plan">View meal plan</ion-button>
-      </section>
+      </app-state>
     </ng-container>
   </main>
 </ion-content>

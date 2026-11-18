@@ -62,7 +62,7 @@
           </div>
         </article>
       </section>
-      <section class="wtc-state wtc-state--empty" *ngIf="!recipes.length"><ion-icon class="wtc-state__icon" name="restaurant-outline" aria-hidden="true"></ion-icon><h2>No safe recipes found</h2><p>Try changing the filters or search terms.</p></section>
+      <app-state *ngIf="!recipes.length" kind="empty" iconName="restaurant-outline" heading="No safe recipes found" message="Try changing the filters or search terms."></app-state>
       <ion-button class="load-more" *ngIf="hasMore" expand="block" fill="outline" (click)="loadMore()" [disabled]="loadingMore">{{ loadingMore ? 'Loading…' : 'Load more recipes' }}</ion-button>
     </ng-container>
   </main>
