@@ -56,4 +56,33 @@ class PerformanceBudgetTest extends TestCase
 
         $this->assertSame('After', RecipeCatalog::all()->first()->name);
     }
+
+    /**
+     * Regression: the array cache store never serialises, so it hid a production
+     * failure. Real stores (file, redis, database) refuse to unserialise objects
+     * (config/cache.php serializable_classes=false), so the catalogue must cache
+     * plain arrays and rebuild models itself.
+     */
+    public function test_catalog_survives_a_serialising_cache_store(): void
+    {
+        config([
+            'cache.default' => 'file',
+            'cache.stores.file.path' => storage_path('framework/testing/catalog-'.uniqid()),
+        ]);
+        app('cache')->forgetDriver('file');
+
+        $recipe = Recipe::create(['name' => 'Cached', 'description' => 'x', 'meal_type' => 'lunch', 'prep_time' => 1, 'cook_time' => 1, 'servings' => 1, 'difficulty' => 'easy', 'instructions' => 'x']);
+        $recipe->ingredients()->create(['name' => 'rice', 'quantity' => '1', 'unit' => 'cup']);
+        RecipeCatalog::flush();
+
+        RecipeCatalog::all();               // fills the cache
+        RecipeCatalog::forgetLocalCopy();   // force the next read to come from the store
+        $recipes = RecipeCatalog::all();
+
+        $this->assertInstanceOf(Recipe::class, $recipes->first());
+        $this->assertSame('Cached', $recipes->first()->name);
+        $this->assertInstanceOf(Ingredient::class, $recipes->first()->ingredients->first());
+        $this->assertSame('rice', $recipes->first()->ingredients->first()->name);
+        RecipeCatalog::flush();
+    }
 }

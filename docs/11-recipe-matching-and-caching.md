@@ -32,14 +32,16 @@ The pantry is loaded once for the active scope (personal or family), only `fresh
 | Problem | Fix |
 | --- | --- |
 | `packageConversionFor` ran one SQL query per pantry item per ingredient (hundreds of queries on recommendations) | Results are memoised per matcher instance, keyed by `user|family|ingredient|unit`. One query per distinct item per request |
-| Every endpoint ran `Recipe::with('ingredients')->get()` (about 100 recipes plus all ingredients) | `RecipeCatalog::all()` caches the collection forever |
+| Every endpoint ran `Recipe::with('ingredients')->get()` (about 100 recipes plus all ingredients) | `RecipeCatalog::all()` caches the catalogue forever (as plain arrays, rebuilt into models once per request) |
 | Batch generation reloaded the catalogue, and the household roster twice, for every day of the range | Loaded once before the day loop in `MealPlanBatchController::generate` |
 
 ## RecipeCatalog rules
 
-- Cache key `recipes.catalog.v1`, store from `CACHE_STORE` (file in dev/prod, array in tests).
+- Cache key `recipes.catalog.v2`, store from `CACHE_STORE` (file in dev/prod, array in tests).
 - **Invalidation:** `AppServiceProvider::boot()` calls `RecipeCatalog::registerInvalidation()`, which flushes on `saved` and `deleted` of `Recipe` and `Ingredient`. Admin edits, image upload and nutrition linking all go through models, so they flush automatically.
 - **You must call `RecipeCatalog::flush()` yourself** if you write recipes with `DB::table()`, `insert()`, `upsert()` or mass `update()` on a query builder. Model events do not fire for those. Seeders are the usual culprit.
+- **Only plain arrays go in the cache.** Laravel's `config/cache.php` sets `serializable_classes=false`, so file, database and Redis stores refuse to unserialise models and return `__PHP_Incomplete_Class`. The array store does not serialise at all, which is why tests on it cannot catch this; `PerformanceBudgetTest::test_catalog_survives_a_serialising_cache_store` uses the file store on purpose. If you change the cached shape, bump the key version.
+- A per-process copy avoids rebuilding models more than once per request. Under a long-lived worker (Octane, queue) call `RecipeCatalog::flush()` when recipes change elsewhere.
 - Results are shared objects. **Do not mutate** models you get from `all()`; clone or map to arrays.
 - The cache stores about 100 recipes. If the catalogue grows to thousands, replace it with SQL-side filtering (see [14-performance-budget.md](14-performance-budget.md)).
 
