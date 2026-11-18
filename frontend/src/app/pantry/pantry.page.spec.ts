@@ -1,15 +1,16 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { FormsModule } from '@angular/forms';
 import { RouterTestingModule } from '@angular/router/testing';
 import { IonicModule } from '@ionic/angular';
 
-import { ExploreContainerComponentModule } from '../explore-container/explore-container.module';
 
 import { PantryPage } from './pantry.page';
 import { receiptCandidates } from './pantry.page';
 import { UseAmountModalComponent } from './use-amount-modal.component';
 import { PantryChangeService } from '../services/pantry-change.service';
+import { ApiService, PantryInputCandidate } from '../services/api.service';
+import { of, Subject, throwError } from 'rxjs';
 
 describe('PantryPage', () => {
   let component: PantryPage;
@@ -18,7 +19,7 @@ describe('PantryPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [PantryPage],
-      imports: [IonicModule.forRoot(), ExploreContainerComponentModule, FormsModule, HttpClientTestingModule, RouterTestingModule]
+      imports: [IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(PantryPage);
@@ -39,6 +40,61 @@ describe('PantryPage', () => {
 
     expect(component.confirmingPantryAdd).toBeTrue();
   });
+
+  it('debounces ingredient validation and only requests the final input', fakeAsync(() => {
+    const api = TestBed.inject(ApiService);
+    const resolveIngredient = spyOn(api, 'resolveIngredient').and.returnValue(of({ name: 'rice', status: 'accepted' }));
+
+    component.form.name = 'r';
+    component.validateManualIngredient();
+    tick(100);
+    component.form.name = 'rice';
+    component.validateManualIngredient();
+
+    tick(299);
+    expect(resolveIngredient).not.toHaveBeenCalled();
+    tick(1);
+
+    expect(resolveIngredient).toHaveBeenCalledOnceWith('rice');
+  }));
+
+  it('cancels stale ingredient requests and ignores responses for previous input', fakeAsync(() => {
+    const api = TestBed.inject(ApiService);
+    const oldRequest = new Subject<PantryInputCandidate>();
+    const currentRequest = new Subject<PantryInputCandidate>();
+    spyOn(api, 'resolveIngredient').and.returnValues(oldRequest, currentRequest);
+
+    component.form.name = 'rice';
+    component.validateManualIngredient();
+    tick(300);
+    expect(oldRequest.observed).toBeTrue();
+
+    component.form.name = 'eggs';
+    component.validateManualIngredient();
+    expect(oldRequest.observed).toBeFalse();
+    oldRequest.next({ name: 'rice', status: 'suggested' });
+    expect(component.pendingSuggestion).toBeUndefined();
+
+    tick(300);
+    currentRequest.next({
+      name: 'eggs',
+      status: 'suggested',
+      suggestion: { id: 1, canonical_name: 'eggs', aliases: [], category: 'food', default_units: ['pieces'] },
+    });
+
+    expect(component.pendingSuggestion?.suggestion?.canonical_name).toBe('eggs');
+  }));
+
+  it('shows a validation error when the ingredient check fails', fakeAsync(() => {
+    const api = TestBed.inject(ApiService);
+    spyOn(api, 'resolveIngredient').and.returnValue(throwError(() => new Error('offline')));
+    component.form.name = 'rice';
+
+    component.validateManualIngredient();
+    tick(300);
+
+    expect(component.ingredientValidationError).toContain('Could not check this ingredient');
+  }));
 
   it('filters pantry items by search and category while retaining freshness state', () => {
     const eggs: any = { id: 1, name: 'Eggs', quantity: '1', unit: 'pieces', freshness_status: 'fresh' };

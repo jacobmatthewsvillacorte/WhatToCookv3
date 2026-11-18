@@ -3,7 +3,6 @@ import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 
-import { ExploreContainerComponentModule } from '../explore-container/explore-container.module';
 
 import { DashboardPage } from './dashboard.page';
 import { of } from 'rxjs';
@@ -18,7 +17,7 @@ describe('DashboardPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [DashboardPage],
-      imports: [IonicModule.forRoot(), FormsModule, ExploreContainerComponentModule, HttpClientTestingModule]
+      imports: [IonicModule.forRoot(), FormsModule, HttpClientTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(DashboardPage);

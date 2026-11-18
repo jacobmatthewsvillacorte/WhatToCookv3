@@ -37,4 +37,10 @@
 .recipe-card__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--wtc-space-2); }
 .recipe-card__actions ion-button { margin: 0; }
 .load-more { width: min(100%, 20rem); margin: var(--wtc-space-2) auto 0; }
-@media (max-width: 32rem) { .filters { grid-template-columns: 1fr; } .recipe-results { grid-template-columns: 1fr; } }
+@media (max-width: 32rem) { .filters { grid-template-columns: 1fr; } .recipe-results { grid-template-columns: 1fr; }; }
+
+.recipe-discovery { gap: 2.5rem; }
+.discovery-header h1 { font-family: var(--wtc-font-family-display); font-size: clamp(2rem, 7vw, 2.75rem); font-weight: 600; line-height: 1.08; }
+.cooking-scope, .recipe-search, .recipe-card { box-shadow: none; }
+.recipe-card { border-radius: var(--wtc-radius-lg); }
+.recipe-card__body { padding: 1.25rem; }

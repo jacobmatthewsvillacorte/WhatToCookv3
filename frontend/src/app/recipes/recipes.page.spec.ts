@@ -4,7 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { RouterTestingModule } from '@angular/router/testing';
 
-import { ExploreContainerComponentModule } from '../explore-container/explore-container.module';
 
 import { RecipesPage } from './recipes.page';
 import { of } from 'rxjs';
@@ -19,7 +18,7 @@ describe('RecipesPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [RecipesPage],
-      imports: [IonicModule.forRoot(), ExploreContainerComponentModule, FormsModule, HttpClientTestingModule, RouterTestingModule]
+      imports: [IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(RecipesPage);

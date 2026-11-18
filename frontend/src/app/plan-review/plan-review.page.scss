@@ -1,12 +1,12 @@
 .page {
   max-width: 760px;
   margin: 0 auto;
-  padding: 16px;
+  padding: var(--wtc-space-4);
 }
 
 .loading {
   display: block;
-  margin: 48px auto;
+  margin: var(--wtc-space-12) auto;
 }
 
 .message,
@@ -16,11 +16,11 @@
 }
 
 .message {
-  margin: 0 0 12px;
+  margin: 0 0 var(--wtc-space-3);
 }
 
 h2 {
-  margin: 22px 0 8px;
+  margin: 22px 0 var(--wtc-space-2);
   font-size: 1.1rem;
 }
 
@@ -67,12 +67,12 @@ ion-note {
 .actions {
   display: grid;
   gap: 10px;
-  margin: 20px 0;
+  margin: var(--wtc-space-5) 0;
 }
 
 .action-help {
   display: block;
-  margin: 0 4px 4px;
+  margin: 0 var(--wtc-space-1) var(--wtc-space-1);
 }
 
 .save-change {
@@ -129,4 +129,4 @@ ion-card[color="warning"] { --background: var(--wtc-color-warning-soft); --color
   .status-counts { grid-template-columns: 1fr; }
 }
 
-@media (max-width: 25.25rem) { .page { padding: var(--wtc-space-3); } .actions { gap: var(--wtc-space-3); } }
+@media (max-width: 25.25rem) { .page { padding: var(--wtc-space-3); } .actions { gap: var(--wtc-space-3); }; }

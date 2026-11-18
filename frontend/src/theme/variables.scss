@@ -6,6 +6,7 @@
 
   /* Typography */
   --wtc-font-family: Inter, "Avenir Next", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --wtc-font-family-display: Georgia, "Times New Roman", serif;
   --ion-font-family: var(--wtc-font-family);
   --wtc-font-size-xs: 0.75rem;
   --wtc-font-size-sm: 0.875rem;
@@ -31,7 +32,8 @@
   --wtc-space-8: 2rem;
   --wtc-space-10: 2.5rem;
   --wtc-space-12: 3rem;
-  --wtc-page-gutter: 1rem;
+  --wtc-space-16: 4rem;
+  --wtc-page-gutter: clamp(1.25rem, 4vw, 2rem);
   --wtc-content-max: 44rem;
 
   /* Shape, elevation, and motion */
@@ -41,7 +43,7 @@
   --wtc-radius-xl: 1.5rem;
   --wtc-radius-pill: 999px;
   --wtc-shadow-xs: 0 1px 2px rgba(72, 44, 34, 0.06);
-  --wtc-shadow-card: 0 8px 24px rgba(72, 44, 34, 0.08);
+  --wtc-shadow-card: 0 10px 30px rgba(72, 44, 34, 0.06);
   --wtc-shadow-raised: 0 14px 32px rgba(72, 44, 34, 0.12);
   --wtc-focus-ring: 0 0 0 3px rgba(189, 85, 55, 0.22);
   --wtc-transition-fast: 150ms ease;

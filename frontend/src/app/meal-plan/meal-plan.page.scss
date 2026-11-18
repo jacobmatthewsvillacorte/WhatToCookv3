@@ -61,3 +61,9 @@
   .day-navigator button { min-height: 4.25rem; }
   .day-navigator button strong { font-size: 1rem; }
 }
+
+.planner-heading { margin-bottom: 2.5rem; }
+.planner-heading__copy h1 { font-family: var(--wtc-font-family-display); font-weight: 600; }
+.week-summary { margin-top: 0; box-shadow: none; }
+.agenda, .all-planned { box-shadow: none; }
+.agenda header, .all-planned > header { padding: 1.25rem; }

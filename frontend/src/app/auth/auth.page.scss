@@ -1,17 +1,17 @@
 .auth-content { --background: var(--wtc-color-canvas); }
-.auth-shell { min-height: 100%; padding: max(36px, env(safe-area-inset-top)) 24px 28px; display:flex; flex-direction:column; justify-content:center; gap:34px; max-width:480px; margin:auto; }
+.auth-shell { min-height: 100%; padding: max(36px, env(safe-area-inset-top)) var(--wtc-space-6) 28px; display:flex; flex-direction:column; justify-content:center; gap:34px; max-width:480px; margin:auto; }
 .brand { color:var(--wtc-color-text); }
-.brand p { margin:12px 0 26px; font-weight:800; font-size:18px; }
+.brand p { margin:var(--wtc-space-3) 0 26px; font-weight:800; font-size:var(--wtc-font-size-md); }
 .brand h1 { font-size:34px; line-height:1.08; letter-spacing:-.8px; margin:0 0 14px; }
 .brand span { color:var(--wtc-color-text-muted); line-height:1.45; }
 .brand-mark { width:48px; height:48px; display:grid; place-items:center; border-radius:16px; color:var(--ion-color-primary-contrast); background:var(--ion-color-primary); font-size:25px; }
-.auth-card { border-radius:24px; padding:10px 18px 18px; background:var(--wtc-color-surface); box-shadow:var(--wtc-shadow-card); }
-.mode-toggle { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--wtc-color-border); margin-bottom:12px; }
-.mode-toggle button { padding:14px 6px 12px; border:0; background:transparent; color:var(--wtc-color-text-muted); font:inherit; }
+.auth-card { border-radius:var(--wtc-radius-xl); padding:10px 18px 18px; background:var(--wtc-color-surface); box-shadow:var(--wtc-shadow-card); }
+.mode-toggle { display:grid; grid-template-columns:1fr 1fr; border-bottom:1px solid var(--wtc-color-border); margin-bottom:var(--wtc-space-3); }
+.mode-toggle button { padding:14px 6px var(--wtc-space-3); border:0; background:transparent; color:var(--wtc-color-text-muted); font:inherit; }
 .mode-toggle button.active { color:var(--ion-color-primary); border-bottom:2px solid var(--ion-color-primary); font-weight:700; }
 .auth-card ion-input { margin:14px 0; }
 .auth-card ion-button { margin:22px 0 0; --border-radius:12px; }
-.error { color:var(--ion-color-danger); font-size:13px; margin:8px 0; }
+.error { color:var(--ion-color-danger); font-size:13px; margin:var(--wtc-space-2) 0; }
 
 @media (min-width: 52rem) {
   .auth-shell { max-width:920px; display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(22rem, .9fr); align-items:center; gap:clamp(3rem, 8vw, 7rem); padding-inline:clamp(2rem, 7vw, 6rem); }

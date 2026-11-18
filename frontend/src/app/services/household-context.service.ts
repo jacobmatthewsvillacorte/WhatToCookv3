@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of } from 'rxjs';
-import { map } from 'rxjs/operators';
+import { finalize, map, shareReplay } from 'rxjs/operators';
 import { ApiService, Family } from './api.service';
 
 export interface HouseholdContextState {
@@ -18,6 +18,11 @@ export interface HouseholdContextState {
  */
 @Injectable({ providedIn: 'root' })
 export class HouseholdContextService {
+  private refreshVersion = 0;
+  private inFlightRefresh?: {
+    userId: number;
+    observable: Observable<HouseholdContextState>;
+  };
   private readonly stateSubject = new BehaviorSubject<HouseholdContextState>({
     userId: null,
     families: [],
@@ -34,24 +39,44 @@ export class HouseholdContextService {
 
   /** Removes all account-specific context, such as when signing out. */
   clear(): void {
+    this.refreshVersion++;
+    this.inFlightRefresh = undefined;
     this.publishState(null, [], null);
   }
 
   /** Loads accepted households and resolves the user's chosen plan context. */
   refresh(userId: number | undefined): Observable<HouseholdContextState> {
     if (!userId || !this.api.hasToken) {
-      return of(this.publishState(null, [], null));
+      this.clear();
+      return of(this.snapshot);
     }
 
-    return this.api.families().pipe(
+    if (this.inFlightRefresh?.userId === userId) {
+      return this.inFlightRefresh.observable;
+    }
+
+    const version = ++this.refreshVersion;
+    let observable: Observable<HouseholdContextState>;
+    observable = this.api.families().pipe(
       map(families => {
+        if (version !== this.refreshVersion) {
+          return this.snapshot;
+        }
         const savedContext = this.readSavedContext(userId);
         const activeFamily = savedContext === 'personal'
           ? null
           : families.find(family => family.id === savedContext) || null;
         return this.publishState(userId, families, activeFamily);
       }),
+      finalize(() => {
+        if (this.inFlightRefresh?.observable === observable) {
+          this.inFlightRefresh = undefined;
+        }
+      }),
+      shareReplay({ bufferSize: 1, refCount: false }),
     );
+    this.inFlightRefresh = { userId, observable };
+    return observable;
   }
 
   /** Selects a household already returned for the current user. */

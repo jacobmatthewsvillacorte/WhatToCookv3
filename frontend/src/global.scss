@@ -109,11 +109,15 @@ h4 {
 
 h1 {
   font-size: var(--wtc-font-size-2xl);
+  font-family: var(--wtc-font-family-display);
+  font-weight: 600;
   letter-spacing: var(--wtc-letter-spacing-tight);
 }
 
 h2 {
   font-size: var(--wtc-font-size-xl);
+  font-family: var(--wtc-font-family-display);
+  font-weight: 600;
   letter-spacing: -0.012em;
 }
 
@@ -621,14 +625,14 @@ ion-toast {
 ion-content > .page,
 ion-content > main.page {
   min-height: 100%;
-  padding: var(--wtc-space-5) var(--wtc-page-gutter) calc(var(--wtc-space-10) + env(safe-area-inset-bottom));
+  padding: var(--wtc-space-8) var(--wtc-page-gutter) calc(var(--wtc-space-12) + env(safe-area-inset-bottom));
 }
 
 .page.wtc-tab-page,
 .page.wtc-direct-page {
   margin-right: auto;
   margin-left: auto;
-  padding: var(--wtc-space-5) var(--wtc-page-gutter) calc(var(--wtc-space-10) + env(safe-area-inset-bottom));
+  padding: var(--wtc-space-8) var(--wtc-page-gutter) calc(var(--wtc-space-12) + env(safe-area-inset-bottom));
 }
 
 .page.wtc-tab-page:not(.wtc-page--wide),
@@ -672,6 +676,15 @@ ion-content > main.page {
 .wtc-state--compact {
   min-height: auto;
   padding: var(--wtc-space-4);
+}
+
+@media (min-width: 700px) {
+  ion-content > .page,
+  ion-content > main.page,
+  .page.wtc-tab-page,
+  .page.wtc-direct-page {
+    padding-top: var(--wtc-space-12);
+  }
 }
 
 .wtc-state ion-spinner {

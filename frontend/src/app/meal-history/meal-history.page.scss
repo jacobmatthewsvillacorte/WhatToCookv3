@@ -1,3 +1,3 @@
-.page { max-width: 680px; margin: auto; padding: 16px; }
-.message { color: #a0432d; }
-.export-tools { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 0 0 12px; }
+.page { max-width: 680px; margin: auto; padding: var(--wtc-space-4); }
+.message { color: var(--wtc-color-danger); }
+.export-tools { display: flex; justify-content: space-between; align-items: center; gap: var(--wtc-space-3); margin: 0 0 var(--wtc-space-3); }

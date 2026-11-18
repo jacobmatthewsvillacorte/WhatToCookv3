@@ -1,7 +1,7 @@
 .page {
   max-width: 780px;
   margin: 0 auto;
-  padding: 16px;
+  padding: var(--wtc-space-4);
 }
 
 .intro,
@@ -10,11 +10,11 @@
 }
 
 .intro {
-  margin: 0 0 16px;
+  margin: 0 0 var(--wtc-space-4);
 }
 
 .setup-hero {
-  margin: 8px 4px 24px;
+  margin: var(--wtc-space-2) var(--wtc-space-1) var(--wtc-space-6);
 
   span,
   .progress-card span {
@@ -24,18 +24,18 @@
     letter-spacing: .12em;
   }
 
-  h1 { margin: 6px 0 8px; font-size: clamp(2rem, 7vw, 2.7rem); }
+  h1 { margin: 6px 0 var(--wtc-space-2); font-size: clamp(2rem, 7vw, 2.7rem); }
   p { margin: 0; max-width: 560px; }
 }
 
 .week-length { --padding-start: 0; --inner-padding-end: 0; }
-.choice-grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 4px 0; }
+.choice-grid { display: flex; flex-wrap: wrap; gap: var(--wtc-space-2); padding: var(--wtc-space-1) 0; }
 .choice-grid button {
   display: inline-flex;
   min-height: 40px;
   align-items: center;
   gap: 6px;
-  padding: 8px 12px;
+  padding: var(--wtc-space-2) var(--wtc-space-3);
   border: 1px solid var(--wtc-color-border-strong);
   border-radius: var(--wtc-radius-md);
   background: transparent;
@@ -49,14 +49,14 @@
 .preference-label p { font-size: .88rem; }
 
 .generate-card {
-  margin: 20px 0;
-  padding: 20px;
+  margin: var(--wtc-space-5) 0;
+  padding: var(--wtc-space-5);
   border: 1px solid var(--wtc-color-border);
   border-radius: var(--wtc-radius-lg);
   background: var(--wtc-color-surface-muted);
 
   h2, p { margin: 0; }
-  ion-button { margin: 16px 0 0; }
+  ion-button { margin: var(--wtc-space-4) 0 0; }
 }
 
 .progress-card { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
@@ -68,16 +68,16 @@
 .progress-steps i { height: 2px; flex: 1; background: var(--wtc-color-border-strong); }
 
 .message {
-  margin: 0 0 12px;
+  margin: 0 0 var(--wtc-space-3);
 }
 
 .loading {
   display: block;
-  margin: 48px auto;
+  margin: var(--wtc-space-12) auto;
 }
 
 ion-list {
-  margin-bottom: 16px;
+  margin-bottom: var(--wtc-space-4);
 }
 
 ion-note {

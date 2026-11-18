@@ -1,6 +1,7 @@
 import { Component, OnDestroy } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
-import { forkJoin, Subscription } from 'rxjs';
+import { EMPTY, forkJoin, of, Subject, Subscription, timer } from 'rxjs';
+import { catchError, distinctUntilChanged, map, switchMap } from 'rxjs/operators';
 import { BarcodeFormat, BarcodeScanner } from '@capacitor-mlkit/barcode-scanning';
 import { SpeechRecognition } from '@capacitor-community/speech-recognition';
 import { TextRecognition } from '@capacitor-mlkit/text-recognition';
@@ -34,6 +35,7 @@ export class PantryPage implements OnDestroy {
   personalItems: PantryItem[] = []; householdItems: PantryItem[] = []; families: Family[] = []; activeFamily?: Family; viewFamilyId: number | null = null; form: PantryForm = this.emptyForm(); editingId: number | null = null;
   message = ''; saving = false; processingInput = false; listening = false; receiptText = ''; voiceReviewTranscript = ''; receiptReviewText = ''; confirmingPantryAdd = false;
   drafts: ParsedPantryDraft[] = []; suggestedCandidates: PantryInputCandidate[] = []; rejectedCandidates: PantryInputCandidate[] = []; pendingSuggestion?: PantryInputCandidate; showAdvancedDetails = false; returnToMealId?: number;
+  ingredientValidationError = '';
   showInventoryFilters = false;
   addPanelOpen = false;
   pantrySearch = '';
@@ -46,13 +48,39 @@ export class PantryPage implements OnDestroy {
   private pantryMutationVersion = 0;
   private pantryLoadRequest = 0;
   private readonly pantryChangeSubscription: Subscription;
+  private readonly ingredientValidationSubscription: Subscription;
+  private readonly ingredientNameChanges = new Subject<string>();
   readonly commonUnits = ['pieces', 'cans', 'packs', 'bottles', 'boxes', 'kg', 'g', 'ml', 'litre'];
   private recognition: any; private voiceTranscript = ''; private stoppingVoice = false;
   constructor(private api: ApiService, private householdContext: HouseholdContextService, private auth: AuthService, private inputCache: PantryInputCacheService, private route: ActivatedRoute, private router: Router, private modalController: ModalController, private toastController: ToastController, private reminders: FreshnessReminderService, pantryChanges: PantryChangeService) {
     this.pantryChangeSubscription = pantryChanges.changes$.subscribe(change => this.applyPantryChange(change.items));
+    this.ingredientValidationSubscription = this.ingredientNameChanges.pipe(
+      map(name => name.trim()),
+      distinctUntilChanged(),
+      switchMap(name => name && !this.editingId
+        ? timer(300).pipe(
+          switchMap(() => this.api.resolveIngredient(name).pipe(
+            map(candidate => ({ name, candidate, failed: false })),
+            catchError(() => of({ name, candidate: undefined, failed: true })),
+          )),
+        )
+        : EMPTY),
+    ).subscribe(result => {
+      if (result.name !== this.form.name.trim() || this.editingId) return;
+      if (result.failed || !result.candidate) {
+        this.ingredientValidationError = 'Could not check this ingredient. It will still be validated when you save.';
+        return;
+      }
+      if (result.candidate.status === 'suggested') {
+        this.pendingSuggestion = result.candidate;
+      } else if (result.candidate.status === 'rejected') {
+        this.ingredientValidationError = result.candidate.message || 'This is not a recognised food ingredient.';
+      }
+    });
   }
-  ngOnDestroy(): void { this.pantryChangeSubscription.unsubscribe(); }
-  ionViewWillEnter() { this.readMealReturnContext(); this.loadFamilies(); }
+  ngOnDestroy(): void { this.pantryChangeSubscription.unsubscribe(); this.ingredientValidationSubscription.unsubscribe(); }
+  ionViewWillLeave(): void { this.cancelIngredientValidation(); }
+  ionViewWillEnter() { this.readMealReturnContext(); if (this.addPanelOpen && this.form.name.trim() && !this.editingId) this.validateManualIngredient(); this.loadFamilies(); }
   loadPantryItems() {
     if (!this.api.hasToken) {
       this.loading = false;
@@ -89,15 +117,24 @@ export class PantryPage implements OnDestroy {
     });
   }
   loadFamilies() { const userId = this.auth.user?.id; this.householdContext.refresh(userId).subscribe({ next: context => { this.families = context.families; const requestedFamily = this.requestedScope === 'family' ? this.families.find(family => family.id === this.requestedFamilyId) : undefined; if (requestedFamily && userId) this.householdContext.select(userId, requestedFamily); this.activeFamily = requestedFamily || context.activeFamily || undefined; this.viewFamilyId = this.activeFamily?.id || null; if (!this.editingId && !this.form.name.trim() && this.requestedScope) this.form.family_id = this.requestedScope === 'family' ? this.viewFamilyId : null; if (this.form.family_id !== null && !this.families.some(family => family.id === this.form.family_id)) this.form.family_id = this.viewFamilyId; this.loadPantryItems(); }, error: () => { this.families = []; this.activeFamily = undefined; this.viewFamilyId = null; this.message = 'Could not load your household. Showing your personal pantry only.'; this.loadPantryItems(); } }); }
-  startAdd() { const familyId = this.form.family_id; this.editingId = null; this.confirmingPantryAdd = false; this.addPanelOpen = true; this.form = this.emptyForm(familyId); this.showAdvancedDetails = false; this.message = ''; }
-  closeAddPanel(): void { this.addPanelOpen = false; this.confirmingPantryAdd = false; this.pendingSuggestion = undefined; this.drafts = []; this.voiceReviewTranscript = ''; }
+  startAdd() { const familyId = this.form.family_id; this.cancelIngredientValidation(); this.editingId = null; this.confirmingPantryAdd = false; this.addPanelOpen = true; this.form = this.emptyForm(familyId); this.showAdvancedDetails = false; this.message = ''; }
+  closeAddPanel(): void { this.cancelIngredientValidation(); this.addPanelOpen = false; this.confirmingPantryAdd = false; this.pendingSuggestion = undefined; this.drafts = []; this.voiceReviewTranscript = ''; }
   adjustQuantity(change: number) { this.form.quantity = String(Math.max(1, Number(this.form.quantity || 0) + change)); }
   adjustParsedQuantity(draft: ParsedPantryDraft, change: number): void { draft.quantity = String(Math.max(1, Number(draft.quantity || 0) + change)); }
   chooseUnit(unit: string) { this.form.unit = unit; }
   suggestUnit() { if (!this.form.unit) { const name = this.form.name.toLowerCase(); if (/\b(egg|eggs)\b/.test(name)) this.form.unit = 'pieces'; else if (/\b(can|tuna|sardines|coconut milk)\b/.test(name)) this.form.unit = 'cans'; } this.validateManualIngredient(); }
-  validateManualIngredient() { const name = this.form.name.trim(); if (!name || this.editingId) return; this.api.resolveIngredient(name).subscribe({ next: candidate => { if (candidate.status === 'suggested') this.pendingSuggestion = candidate; else if (candidate.status === 'rejected') { this.pendingSuggestion = undefined; this.message = candidate.message || 'This is not a recognised food ingredient.'; } else this.pendingSuggestion = undefined; }, error: () => undefined }); }
+  validateManualIngredient() {
+    this.pendingSuggestion = undefined;
+    this.ingredientValidationError = '';
+    this.ingredientNameChanges.next(this.form.name);
+  }
+  private cancelIngredientValidation(): void {
+    this.pendingSuggestion = undefined;
+    this.ingredientValidationError = '';
+    this.ingredientNameChanges.next('');
+  }
   confirmSuggestion() { if (!this.pendingSuggestion?.suggestion) return; this.form.name = this.pendingSuggestion.suggestion.canonical_name; if (!this.form.unit && this.pendingSuggestion.suggestion.default_units?.[0]) this.form.unit = this.pendingSuggestion.suggestion.default_units[0]; this.message = `Using ${this.form.name}.`; this.pendingSuggestion = undefined; }
-  edit(item: PantryItem) { this.editingId = item.id; this.confirmingPantryAdd = false; this.addPanelOpen = true; this.form = { name: item.name, quantity: item.quantity || item.quantity_value?.toString() || '', unit: item.unit || '', purchase_date: this.dateOnly(item.purchase_date), expiry_date: this.dateOnly(item.expiry_date), freshness_review_date: this.dateOnly(item.freshness_review_date), purchase_source: item.purchase_source || 'unknown', storage_type: item.storage_type || 'unknown', freshness_condition: item.freshness_condition || 'unknown', family_id: item.family_id ?? null }; this.showAdvancedDetails = true; this.message = `Editing ${item.name}. Update the form below, then review and save.`; document.querySelector('ion-content')?.scrollToTop(250); }
+  edit(item: PantryItem) { this.cancelIngredientValidation(); this.editingId = item.id; this.confirmingPantryAdd = false; this.addPanelOpen = true; this.form = { name: item.name, quantity: item.quantity || item.quantity_value?.toString() || '', unit: item.unit || '', purchase_date: this.dateOnly(item.purchase_date), expiry_date: this.dateOnly(item.expiry_date), freshness_review_date: this.dateOnly(item.freshness_review_date), purchase_source: item.purchase_source || 'unknown', storage_type: item.storage_type || 'unknown', freshness_condition: item.freshness_condition || 'unknown', family_id: item.family_id ?? null }; this.showAdvancedDetails = true; this.message = `Editing ${item.name}. Update the form below, then review and save.`; document.querySelector('ion-content')?.scrollToTop(250); }
   async scanBarcode() { try { const { supported } = await BarcodeScanner.isSupported(); if (!supported) { this.message = 'Barcode scanning is not supported on this device. Enter the item manually.'; return; } const { barcodes } = await BarcodeScanner.scan({ formats: [BarcodeFormat.Ean13, BarcodeFormat.Ean8, BarcodeFormat.UpcA, BarcodeFormat.UpcE] }); if (barcodes[0]?.displayValue) this.lookupBarcode(barcodes[0].displayValue); } catch { this.message = 'Camera scan was cancelled or permission was not granted.'; } }
   lookupBarcode(barcode: string) { const cached = this.inputCache.getBarcode(barcode); if (cached) { this.applyResult(cached); return; } this.processingInput = true; this.api.barcodeInput(barcode).subscribe({ next: result => { this.inputCache.putBarcode(barcode, result); this.applyResult(result); }, error: () => { this.message = 'Barcode captured, but product lookup failed. Enter the ingredient name, quantity, and unit for review.'; this.processingInput = false; } }); }
   async startVoice() { if (Capacitor.isNativePlatform()) return this.startNativeVoice(); this.startBrowserVoice(); }

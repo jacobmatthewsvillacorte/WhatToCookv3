@@ -37,4 +37,4 @@
 .cooking-tip p { margin: var(--wtc-space-1) 0 0; }
 .review-section ion-textarea { margin-top: var(--wtc-space-2); }
 .review-section ion-button { justify-self: start; margin: 0; }
-@media (max-width: 36rem) { .servings-control { display: grid; } .servings-control ion-item { width: 100%; } .nutrition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 36rem) { .servings-control { display: grid; } .servings-control ion-item { width: 100%; } .nutrition-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }; }
