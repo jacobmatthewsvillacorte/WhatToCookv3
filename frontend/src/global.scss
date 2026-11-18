@@ -614,6 +614,72 @@ ion-toast {
   text-transform: uppercase;
 }
 
+.wtc-eyebrow--brand {
+  color: var(--wtc-color-primary);
+}
+
+/* Inline feedback after an action or a failed request. Neutral by default;
+ * add --danger or --warning when the message is an error or a caution. */
+.wtc-notice {
+  margin: 0 0 var(--wtc-space-3);
+  padding: var(--wtc-space-3) var(--wtc-space-4);
+  border: 1px solid var(--wtc-color-info);
+  border-radius: var(--wtc-radius-md);
+  background: var(--wtc-color-info-soft);
+  color: var(--wtc-color-text);
+  font-size: var(--wtc-font-size-sm);
+  line-height: var(--wtc-line-height-body);
+}
+
+.wtc-notice--danger {
+  border-color: var(--wtc-color-danger);
+  background: var(--wtc-color-danger-soft);
+}
+
+.wtc-notice--warning {
+  border-color: var(--wtc-color-warning);
+  background: var(--wtc-color-warning-soft);
+}
+
+/* Title row of a content section: heading on the left, an action link or count on the right. */
+.wtc-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--wtc-space-3);
+  margin-bottom: var(--wtc-space-4);
+}
+
+.wtc-section-heading h2 {
+  margin: var(--wtc-space-1) 0 0;
+  color: var(--wtc-color-text);
+  font-family: var(--wtc-font-family-display);
+  font-size: var(--wtc-font-size-lg);
+  font-weight: 600;
+  line-height: var(--wtc-line-height-heading);
+}
+
+.wtc-section-heading p {
+  margin: var(--wtc-space-1) 0 0;
+  color: var(--wtc-color-text-muted);
+  font-size: var(--wtc-font-size-sm);
+}
+
+.wtc-section-heading > a {
+  flex: none;
+  padding: var(--wtc-space-2) 0;
+  color: var(--wtc-color-primary);
+  font-size: var(--wtc-font-size-sm);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.wtc-section-heading > span {
+  flex: none;
+  color: var(--wtc-color-text-muted);
+  font-size: var(--wtc-font-size-sm);
+}
+
 .wtc-title-display {
   margin: 0;
   color: var(--wtc-color-text);

@@ -8,7 +8,7 @@
 </ion-header>
 
 <ion-content>
-  <main class="page">
+  <main class="page wtc-direct-page">
     <ion-spinner *ngIf="loading" class="loading" aria-label="Loading plan options"></ion-spinner>
 
     <ng-container *ngIf="!loading">
@@ -17,7 +17,7 @@
         <h1>Build a plan that fits your week.</h1>
         <p>Choose your routine and preferences. You’ll review a draft before anything is added to your calendar.</p>
       </section>
-      <ion-text color="danger" *ngIf="message"><p class="message">{{ message }}</p></ion-text>
+      <ion-text color="danger" *ngIf="message"><p class="wtc-notice">{{ message }}</p></ion-text>
 
       <ion-list inset="true">
         <ion-list-header>

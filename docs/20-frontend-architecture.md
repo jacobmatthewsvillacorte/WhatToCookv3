@@ -41,6 +41,10 @@ meal-details.page.ts -> api.mealPlanPreflight()      -> /cooking/:id
 cooking.page.ts      -> api.cookMealPlan() | completeMealPlanWithoutDeduction()  -> /meal-details/:id
 ```
 
+## Shared UI
+
+`src/app/shared/state/state.component.ts` is a standalone component, `<app-state>`, for loading, error and empty blocks. Import `StateComponent` in a page module's `imports`. Everything else shared is CSS (`wtc-*` classes in `global.scss`), not components.
+
 ## Services
 
 | Service | Responsibility |

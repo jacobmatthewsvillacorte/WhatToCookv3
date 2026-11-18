@@ -4,5 +4,6 @@ import { IonicModule } from '@ionic/angular';
 import { FormsModule } from '@angular/forms';
 import { MealPlanPageRoutingModule } from './meal-plan-routing.module';
 import { MealPlanPage } from './meal-plan.page';
-@NgModule({ imports: [CommonModule, FormsModule, IonicModule, MealPlanPageRoutingModule], declarations: [MealPlanPage] })
+import { StateComponent } from '../shared/state/state.component';
+@NgModule({ imports: [StateComponent, CommonModule, FormsModule, IonicModule, MealPlanPageRoutingModule], declarations: [MealPlanPage] })
 export class MealPlanPageModule {}

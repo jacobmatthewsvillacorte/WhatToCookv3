@@ -1,10 +1,6 @@
-.page {
-  padding: var(--wtc-space-5) 14px;
-}
-
 .page h1 {
   color: var(--wtc-color-text);
-  font-size: 17px;
+  font-size: var(--wtc-font-size-md);
   margin: var(--wtc-space-2) var(--wtc-space-2) 10px;
 }
 
@@ -19,17 +15,12 @@
 }
 
 .page h2 {
-  font-size: 15px;
+  font-size: var(--wtc-font-size-base);
 }
 
 .page p {
   font-size: var(--wtc-font-size-xs);
   white-space: normal;
-}
-
-.message {
-  color: var(--ion-color-medium);
-  margin: 0 var(--wtc-space-2);
 }
 
 @media (min-width: 52rem) {

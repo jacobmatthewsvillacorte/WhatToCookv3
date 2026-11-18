@@ -3,7 +3,7 @@
 
 :host { display: block; }
 
-a { color: inherit; text-decoration: none; }
+.pantry-card, .recipe-card { color: inherit; text-decoration: none; }
 
 // --- Intro ------------------------------------------------------------------
 .dashboard-intro {
@@ -71,31 +71,6 @@ a { color: inherit; text-decoration: none; }
 
 // --- Sections ---------------------------------------------------------------
 .dashboard-section { margin-top: var(--wtc-space-10); }
-
-.section-heading {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--wtc-space-3);
-  margin-bottom: var(--wtc-space-4);
-
-  h2 {
-    margin: var(--wtc-space-1) 0 0;
-    font-family: var(--wtc-font-family-display);
-    font-size: var(--wtc-font-size-lg);
-    font-weight: 600;
-    line-height: var(--wtc-line-height-heading);
-    color: var(--wtc-color-text);
-  }
-
-  > a {
-    flex: none;
-    padding: var(--wtc-space-2) 0;
-    color: var(--wtc-color-primary);
-    font-size: var(--wtc-font-size-sm);
-    font-weight: 700;
-  }
-}
 
 // --- Pantry overview --------------------------------------------------------
 .pantry-grid {

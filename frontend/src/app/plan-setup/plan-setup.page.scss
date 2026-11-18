@@ -1,11 +1,4 @@
-.page {
-  max-width: 780px;
-  margin: 0 auto;
-  padding: var(--wtc-space-4);
-}
-
-.intro,
-.message {
+.intro {
   line-height: 1.5;
 }
 
@@ -62,14 +55,10 @@
 .progress-card { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
 .progress-card ion-spinner { width: 32px; height: 32px; color: var(--wtc-color-primary); }
 .progress-card span { color: var(--wtc-color-primary); font-size: .72rem; font-weight: 800; letter-spacing: .12em; }
-.progress-steps { grid-column: 1 / -1; display: flex; align-items: center; gap: 7px; }
+.progress-steps { grid-column: 1 / -1; display: flex; align-items: center; gap: var(--wtc-space-2); }
 .progress-steps b { display: grid; width: 24px; height: 24px; place-items: center; border: 1px solid var(--wtc-color-border-strong); border-radius: 50%; color: var(--wtc-color-text-muted); font-size: .75rem; }
 .progress-steps b.complete { border-color: var(--wtc-color-primary); background: var(--wtc-color-primary); color: var(--ion-color-primary-contrast); }
 .progress-steps i { height: 2px; flex: 1; background: var(--wtc-color-border-strong); }
-
-.message {
-  margin: 0 0 var(--wtc-space-3);
-}
 
 .loading {
   display: block;
@@ -88,7 +77,6 @@ ion-note {
 .choice-grid button:focus-visible { outline: none; box-shadow: var(--wtc-focus-ring); }
 
 @media (max-width: 25.25rem) {
-  .page { padding: var(--wtc-space-3); }
   .setup-hero { margin-right: 0; margin-left: 0; }
   .choice-grid { gap: var(--wtc-space-2); }
   .choice-grid button { flex: 1 1 calc(50% - var(--wtc-space-2)); justify-content: center; }

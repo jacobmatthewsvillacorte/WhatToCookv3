@@ -1,11 +1,8 @@
-.page { max-width: 980px; margin: 0 auto; padding: var(--wtc-space-4); color: var(--wtc-color-text); }
-.intro, .message, .notice { line-height: var(--wtc-line-height-body); }
-.message, .notice { margin: 0 0 var(--wtc-space-3); padding: var(--wtc-space-3); border: 1px solid var(--wtc-color-warning); border-radius: var(--wtc-radius-md); background: var(--wtc-color-warning-soft); color: var(--wtc-color-warning); font-weight: 600; }
+.intro { line-height: var(--wtc-line-height-body); }
 .spinner { display: block; margin: 36px auto; }
 .planner-heading { margin-bottom: var(--wtc-space-4); }
 .planner-heading .intro { margin: 0; }
 .planner-heading__copy h1 { margin: var(--wtc-space-1) 0 var(--wtc-space-2); font-size: clamp(1.75rem, 7vw, 2.25rem); letter-spacing: var(--wtc-letter-spacing-tight); }
-.eyebrow { margin: 0; color: var(--wtc-color-primary); font-size: var(--wtc-font-size-xs); font-weight: 800; letter-spacing: var(--wtc-letter-spacing-label); }
 
 .context-picker { margin: 0; border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-md); --background: var(--wtc-color-surface-raised); }
 .week-summary { display: flex; align-items: center; justify-content: space-between; gap: var(--wtc-space-3); margin: var(--wtc-space-5) 0 var(--wtc-space-1); padding: var(--wtc-space-4); border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-lg); background: var(--wtc-color-surface-raised); box-shadow: var(--wtc-shadow-xs); }
@@ -42,14 +39,43 @@
 .planned strong, .planned small { display: block; }
 .planned small { margin-top: var(--wtc-space-1); color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-xs); }
 .readiness { display: inline-flex; align-items: center; gap: var(--wtc-space-1); margin-top: var(--wtc-space-2); font-size: var(--wtc-font-size-xs); font-weight: 700; }
-.readiness--ready, .readiness--cooked { color: var(--wtc-color-success); }.readiness--attention { color: var(--wtc-color-warning); }.readiness--unavailable { color: var(--wtc-color-text-muted); }
+.readiness--ready, .readiness--cooked { color: var(--wtc-color-success); }
+
+.readiness--attention { color: var(--wtc-color-warning); }
+
+.readiness--unavailable { color: var(--wtc-color-text-muted); }
 .add { border: 1px dashed var(--wtc-color-border-strong); background: var(--wtc-color-surface); color: var(--wtc-color-primary); font-size: var(--wtc-font-size-sm); font-weight: 700; }
 .add:disabled { border-color: var(--wtc-color-border); color: var(--wtc-color-text-subtle); opacity: .72; }
-.slot ion-button { margin: var(--wtc-space-1) 0 0; --padding-start: 0; font-size: var(--wtc-font-size-xs); }.cooked { color: var(--wtc-color-success); font-weight: 700; }
-.all-planned { margin-top: 0; }.all-planned article { padding: var(--wtc-space-3) var(--wtc-space-4); border-top: 1px solid var(--wtc-color-border); }.all-planned article > button, .all-planned article div button { border: 0; background: transparent; color: var(--wtc-color-text); text-align: left; font: inherit; }.all-planned article > button strong, .all-planned article > button span { display: block; }.all-planned article > button span { margin-top: var(--wtc-space-1); color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-xs); }.all-planned article div { display: flex; flex-wrap: wrap; gap: var(--wtc-space-2); margin-top: var(--wtc-space-2); }.all-planned article div button { padding: var(--wtc-space-2); border: 1px solid var(--wtc-color-success); border-radius: var(--wtc-radius-sm); background: var(--wtc-color-success-soft); font-size: var(--wtc-font-size-xs); }.empty, .helper { color: var(--wtc-color-text-muted); }.empty { padding: 0 var(--wtc-space-4) var(--wtc-space-4); }.all-planned-toggle { margin: var(--wtc-space-4) 0 var(--wtc-space-1); }.editor h2 { margin: var(--wtc-space-6) 0 var(--wtc-space-2); font-size: var(--wtc-font-size-lg); }.helper { font-size: var(--wtc-font-size-sm); line-height: var(--wtc-line-height-body); }
-.planner-footer ion-toolbar { --padding-top: var(--wtc-space-2); --padding-bottom: calc(var(--wtc-space-2) + env(safe-area-inset-bottom)); --padding-start: var(--wtc-space-3); --padding-end: var(--wtc-space-3); border-top: 1px solid var(--wtc-color-border); box-shadow: var(--wtc-shadow-raised); }.planner-footer ion-button { margin: 0; }
+.slot ion-button { margin: var(--wtc-space-1) 0 0; --padding-start: 0; font-size: var(--wtc-font-size-xs); }
+
+.cooked { color: var(--wtc-color-success); font-weight: 700; }
+.all-planned { margin-top: 0; }
+
+.all-planned article { padding: var(--wtc-space-3) var(--wtc-space-4); border-top: 1px solid var(--wtc-color-border); }
+
+.all-planned article > button, .all-planned article div button { border: 0; background: transparent; color: var(--wtc-color-text); text-align: left; font: inherit; }
+
+.all-planned article > button strong, .all-planned article > button span { display: block; }
+
+.all-planned article > button span { margin-top: var(--wtc-space-1); color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-xs); }
+
+.all-planned article div { display: flex; flex-wrap: wrap; gap: var(--wtc-space-2); margin-top: var(--wtc-space-2); }
+
+.all-planned article div button { padding: var(--wtc-space-2); border: 1px solid var(--wtc-color-success); border-radius: var(--wtc-radius-sm); background: var(--wtc-color-success-soft); font-size: var(--wtc-font-size-xs); }
+
+.empty, .helper { color: var(--wtc-color-text-muted); }
+
+.empty { padding: 0 var(--wtc-space-4) var(--wtc-space-4); }
+
+.all-planned-toggle { margin: var(--wtc-space-4) 0 var(--wtc-space-1); }
+
+.editor h2 { margin: var(--wtc-space-6) 0 var(--wtc-space-2); font-size: var(--wtc-font-size-lg); }
+
+.helper { font-size: var(--wtc-font-size-sm); line-height: var(--wtc-line-height-body); }
+.planner-footer ion-toolbar { --padding-top: var(--wtc-space-2); --padding-bottom: calc(var(--wtc-space-2) + env(safe-area-inset-bottom)); --padding-start: var(--wtc-space-3); --padding-end: var(--wtc-space-3); border-top: 1px solid var(--wtc-color-border); box-shadow: var(--wtc-shadow-raised); }
+
+.planner-footer ion-button { margin: 0; }
 @media (max-width: 25.25rem) {
-  .page { padding: var(--wtc-space-3); }
   .week-summary { align-items: flex-start; }
 
   /* Keep the pantry note and its action as separate, full-width controls on narrow phones. */

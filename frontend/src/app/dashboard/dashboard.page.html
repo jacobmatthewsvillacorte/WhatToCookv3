@@ -1,17 +1,8 @@
 <ion-content>
   <div class="page wtc-tab-page">
-    <section *ngIf="loading" class="wtc-state wtc-state--loading" role="status" aria-live="polite">
-      <ion-spinner aria-label="Loading your kitchen overview"></ion-spinner>
-      <h2>Getting your kitchen ready</h2>
-      <p>Loading your pantry and meal ideas.</p>
-    </section>
+    <app-state *ngIf="loading" kind="loading" heading="Getting your kitchen ready" message="Loading your pantry and meal ideas." spinnerLabel="Loading your kitchen overview"></app-state>
 
-    <section *ngIf="!loading && error" class="wtc-state wtc-state--error" role="alert">
-      <ion-icon class="wtc-state__icon" name="alert-circle-outline" aria-hidden="true"></ion-icon>
-      <h2>We couldn’t load Home</h2>
-      <p>{{ error }}</p>
-      <ion-button fill="outline" (click)="loadDashboardData()">Try again</ion-button>
-    </section>
+    <app-state *ngIf="!loading && error" kind="error" heading="We couldn’t load Home" [message]="error" actionLabel="Try again" (action)="loadDashboardData()"></app-state>
 
     <ng-container *ngIf="!loading && !error">
       <section class="dashboard-intro">
@@ -37,7 +28,7 @@
       <p class="load-notice" *ngIf="notice" role="status"><ion-icon name="information-circle-outline"></ion-icon>{{ notice }}</p>
 
       <section class="dashboard-section pantry-overview">
-        <div class="section-heading">
+        <div class="wtc-section-heading">
           <div><p class="wtc-eyebrow">Pantry overview</p><h2>At a glance</h2></div>
           <a routerLink="/tabs/pantry">Manage pantry</a>
         </div>
@@ -69,7 +60,7 @@
       </section>
 
       <section class="dashboard-section" *ngIf="attention(overviewItems()).length">
-        <div class="section-heading">
+        <div class="wtc-section-heading">
           <div><p class="wtc-eyebrow">Use soon</p><h2>Items needing attention</h2></div>
           <a routerLink="/tabs/pantry">See pantry</a>
         </div>
@@ -84,7 +75,7 @@
       </section>
 
       <section class="dashboard-section recommendations">
-        <div class="section-heading">
+        <div class="wtc-section-heading">
           <div><p class="wtc-eyebrow">Based on {{ selectedPantryLabel }}</p><h2>Recommended for your household</h2></div>
           <a routerLink="/tabs/recipes">See all</a>
         </div>

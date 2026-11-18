@@ -1,8 +1,9 @@
 .pantry-page {
-  padding: var(--wtc-space-5) var(--wtc-space-4) 116px;
+  padding-bottom: 116px; /* room for the sticky add bar */
 }
 
-.pantry-hero, .section-heading, .sheet-heading {
+.pantry-hero,
+.sheet-heading {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -23,14 +24,6 @@
   font-size: var(--wtc-font-size-sm);
 }
 
-.eyebrow {
-  margin: 0;
-  color: var(--wtc-color-primary);
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: .12em;
-}
-
 .add-button {
   margin: 0;
   white-space: nowrap;
@@ -40,7 +33,7 @@
   display: flex;
   align-items: center;
   height: 50px;
-  padding: 0 13px;
+  padding: 0 var(--wtc-space-3);
   border: 1px solid var(--wtc-color-border);
   border-radius: var(--wtc-radius-md);
   background: var(--wtc-color-surface);
@@ -48,7 +41,7 @@
 
 .pantry-search > ion-icon {
   color: var(--wtc-color-text-muted);
-  font-size: 21px;
+  font-size: var(--wtc-font-size-lg);
 }
 
 .pantry-search input {
@@ -95,31 +88,11 @@
 .category-chips span {
   margin-left: var(--wtc-space-1);
   opacity: .72;
-  font-size: 11px;
-}
-
-.message {
-  margin: 14px 2px;
-  color: var(--wtc-color-text-muted);
-  font-size: 13px;
+  font-size: var(--wtc-font-size-xs);
 }
 
 .inventory-section {
   margin-top: 26px;
-}
-
-.section-heading {
-  margin-bottom: 10px;
-}
-
-.section-heading h2 {
-  margin: 0;
-  font-size: var(--wtc-font-size-md);
-}
-
-.section-heading p {
-  margin: 2px 0 0;
-  font-size: var(--wtc-font-size-xs);
 }
 
 .section-heading__actions {
@@ -130,7 +103,7 @@
 
 .section-heading__actions ion-button {
   margin: 0;
-  font-size: 11px;
+  font-size: var(--wtc-font-size-xs);
 }
 
 .section-heading__actions > span {
@@ -144,7 +117,7 @@
   align-items: center;
   gap: var(--wtc-space-3);
   margin-bottom: 10px;
-  padding: 13px 10px;
+  padding: var(--wtc-space-3) 10px;
   border: 1px solid var(--wtc-color-border);
   border-radius: 16px;
   background: var(--wtc-color-surface);
@@ -157,10 +130,10 @@
   height: 42px;
   place-items: center;
   flex: none;
-  border-radius: 13px;
+  border-radius: var(--wtc-radius-md);
   background: var(--wtc-color-primary-soft);
   color: var(--wtc-color-primary);
-  font-size: 21px;
+  font-size: var(--wtc-font-size-lg);
 }
 
 .ingredient-icon.warning {
@@ -176,22 +149,22 @@
 .item-copy h3 {
   overflow: hidden;
   margin: 0 0 2px;
-  font-size: 15px;
+  font-size: var(--wtc-font-size-base);
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .item-copy p {
-  margin: 0 0 5px;
-  font-size: 13px;
+  margin: 0 0 var(--wtc-space-1);
+  font-size: var(--wtc-font-size-sm);
 }
 
 .state {
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  gap: var(--wtc-space-1);
   color: var(--wtc-color-success);
-  font-size: 11px;
+  font-size: var(--wtc-font-size-xs);
   font-weight: 700;
 }
 
@@ -214,7 +187,7 @@
   flex-basis: 100%;
   align-items: center;
   gap: var(--wtc-space-2);
-  padding: 9px 0 0 54px;
+  padding: var(--wtc-space-2) 0 0 54px;
   border-top: 1px solid var(--wtc-color-border);
 }
 
@@ -229,7 +202,7 @@
 
 .freshness-actions span {
   color: var(--wtc-color-text-muted);
-  font-size: 11px;
+  font-size: var(--wtc-font-size-xs);
 }
 
 .empty-results {
@@ -277,8 +250,8 @@
 }
 
 .sheet-intro {
-  margin: 9px 0 18px;
-  font-size: 13px;
+  margin: var(--wtc-space-2) 0 18px;
+  font-size: var(--wtc-font-size-sm);
 }
 
 .input-methods {
@@ -291,7 +264,7 @@
   --padding-start: 4px;
   --padding-end: 4px;
   margin: 0;
-  font-size: 11px;
+  font-size: var(--wtc-font-size-xs);
 }
 
 .review-box, .parsed-batch, .confirmation-card {
@@ -309,7 +282,7 @@
 
 .review-box p, .parsed-batch p {
   margin: 6px 0;
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
 }
 
 .review-box > div {
@@ -385,8 +358,8 @@
   display: grid;
   grid-template-columns: 24px 1fr 72px 80px;
   align-items: end;
-  gap: 7px;
-  padding: 9px 0;
+  gap: var(--wtc-space-2);
+  padding: var(--wtc-space-2) 0;
   border-bottom: 1px solid var(--wtc-color-border);
 }
 
@@ -450,10 +423,6 @@
   .pantry-card {
     padding: 14px;
   }
-}
-
-.pantry-page {
-  padding-top: 0;
 }
 
 .pantry-hero {

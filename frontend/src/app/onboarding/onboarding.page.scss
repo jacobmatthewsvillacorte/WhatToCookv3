@@ -12,7 +12,7 @@
 .step {
   color: var(--wtc-color-text-muted);
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
 }
 
 .illustration {
@@ -55,11 +55,11 @@
 
 .code-help {
   color: var(--wtc-color-text-muted);
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
   margin: var(--wtc-space-3) 0 0;
 }
 
 .error {
   color: var(--ion-color-danger);
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
 }

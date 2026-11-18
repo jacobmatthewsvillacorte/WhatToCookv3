@@ -12,7 +12,6 @@
 .search { border-bottom: 1px solid var(--wtc-color-border); }
 .filters { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--wtc-space-2); padding: var(--wtc-space-2) 0 0; }
 .filters ion-item { --padding-start: var(--wtc-space-2); min-width: 0; border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-md); }
-.message { margin: 0; color: var(--wtc-color-text-muted); }
 .recipe-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: var(--wtc-space-4); }
 .recipe-card { overflow: hidden; border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-lg); background: var(--wtc-color-surface); box-shadow: var(--wtc-shadow-card); }
 .recipe-card__image-button { position: relative; display: block; width: 100%; padding: 0; border: 0; background: var(--wtc-color-surface-muted); cursor: pointer; text-align: left; }

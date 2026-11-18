@@ -1,11 +1,7 @@
-.page {
-  padding: var(--wtc-space-5) 14px 30px;
-}
-
 .profile {
   display: flex;
   align-items: center;
-  gap: 13px;
+  gap: var(--wtc-space-3);
   padding: var(--wtc-space-2) 10px var(--wtc-space-5);
 }
 
@@ -30,7 +26,7 @@
 .profile p {
   margin: 0;
   color: var(--wtc-color-text-muted);
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
 }
 
 .page ion-list {

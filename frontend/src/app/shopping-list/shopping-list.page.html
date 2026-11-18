@@ -8,7 +8,7 @@
 <ion-content>
   <main class="page wtc-direct-page shopping-page" id="main-content">
     <p *ngIf="household">Shared with {{ household.name }}</p>
-    <p class="message" *ngIf="message" role="status">{{ message }}</p>
+    <p class="wtc-notice" *ngIf="message" role="status">{{ message }}</p>
 
     <ion-card class="shopping-add-card" aria-labelledby="shopping-add-title">
       <ion-card-content class="wtc-form">
@@ -43,16 +43,8 @@
       </ion-card-content>
     </ion-card>
 
-    <section *ngIf="loading" class="wtc-state wtc-state--loading" role="status" aria-live="polite">
-      <ion-spinner aria-label="Loading shopping list"></ion-spinner>
-      <h2>Loading your shopping list</h2>
-    </section>
-    <section *ngIf="!loading && loadError" class="wtc-state wtc-state--error" role="alert">
-      <ion-icon class="wtc-state__icon" name="alert-circle-outline" aria-hidden="true"></ion-icon>
-      <h2>Shopping list is unavailable</h2>
-      <p>{{ loadError }}</p>
-      <ion-button fill="outline" (click)="load()">Try again</ion-button>
-    </section>
+    <app-state *ngIf="loading" kind="loading" heading="Loading your shopping list" spinnerLabel="Loading shopping list"></app-state>
+    <app-state *ngIf="!loading && loadError" kind="error" heading="Shopping list is unavailable" [message]="loadError" actionLabel="Try again" (action)="load()"></app-state>
     <ion-list *ngIf="!loading && !loadError && items.length" aria-label="Shopping list items">
       <ion-item *ngFor="let item of items">
         <ion-checkbox slot="start" [checked]="item.is_purchased" (ionChange)="toggle(item)" aria-label="Mark {{ item.ingredient_name }} as bought"></ion-checkbox>

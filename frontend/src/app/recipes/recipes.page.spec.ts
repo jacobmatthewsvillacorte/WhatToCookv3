@@ -10,6 +10,7 @@ import { of } from 'rxjs';
 import { ApiService, Family } from '../services/api.service';
 import { AuthService } from '../services/auth.service';
 import { HouseholdContextService } from '../services/household-context.service';
+import { StateComponent } from '../shared/state/state.component';
 
 describe('RecipesPage', () => {
   let component: RecipesPage;
@@ -18,7 +19,7 @@ describe('RecipesPage', () => {
   beforeEach(async () => {
     await TestBed.configureTestingModule({
       declarations: [RecipesPage],
-      imports: [IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule]
+      imports: [StateComponent, IonicModule.forRoot(), FormsModule, HttpClientTestingModule, RouterTestingModule]
     }).compileComponents();
 
     fixture = TestBed.createComponent(RecipesPage);

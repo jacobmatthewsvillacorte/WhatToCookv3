@@ -1,21 +1,17 @@
-.page {
-  padding: 18px 14px var(--wtc-space-8);
-}
-
 .intro {
   margin: var(--wtc-space-1) var(--wtc-space-2) var(--wtc-space-5);
 }
 
 .intro span {
   color: var(--ion-color-primary);
-  font-size: 11px;
+  font-size: var(--wtc-font-size-xs);
   letter-spacing: .9px;
   font-weight: 800;
 }
 
 .intro h1 {
   font-size: 26px;
-  margin: 7px 0;
+  margin: var(--wtc-space-2) 0;
   color: var(--wtc-color-text);
 }
 
@@ -48,7 +44,7 @@
 }
 
 .page ion-item p {
-  font-size: 11px;
+  font-size: var(--wtc-font-size-xs);
 }
 
 .warning {
@@ -58,7 +54,7 @@
 .empty {
   margin: 0;
   color: var(--wtc-color-text-muted);
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
   line-height: 1.45;
 }
 
@@ -81,17 +77,12 @@
 .form-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 7px;
+  gap: var(--wtc-space-2);
   margin-top: var(--wtc-space-4);
 }
 
 .form-actions ion-button {
   margin-top: 0;
-}
-
-.message {
-  color: var(--ion-color-medium);
-  margin: 14px var(--wtc-space-2);
 }
 
 .spinner {
@@ -104,7 +95,7 @@
 }
 
 .coming-soon p {
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
   line-height: 1.45;
 }
 

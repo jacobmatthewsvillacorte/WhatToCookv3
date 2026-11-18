@@ -13,9 +13,9 @@
 </ion-header>
 
 <ion-content>
-  <main class="page">
+  <main class="page wtc-direct-page">
     <ion-spinner *ngIf="loading" class="loading" aria-label="Loading meal-plan draft"></ion-spinner>
-    <ion-text color="danger" *ngIf="message"><p class="message">{{ message }}</p></ion-text>
+    <ion-text color="danger" *ngIf="message"><p class="wtc-notice">{{ message }}</p></ion-text>
 
     <ng-container *ngIf="!loading && response">
       <ion-card>

@@ -5,9 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { RecipesPage } from './recipes.page';
 
 import { RecipesPageRoutingModule } from './recipes-routing.module';
+import { StateComponent } from '../shared/state/state.component';
 
 @NgModule({
-  imports: [
+  imports: [StateComponent, 
     IonicModule,
     CommonModule,
     FormsModule,

@@ -4,5 +4,6 @@ import { FormsModule } from '@angular/forms';
 import { IonicModule } from '@ionic/angular';
 import { ProfilePageRoutingModule } from './profile-routing.module';
 import { ProfilePage } from './profile.page';
-@NgModule({ imports: [CommonModule, FormsModule, IonicModule, ProfilePageRoutingModule], declarations: [ProfilePage] })
+import { StateComponent } from '../shared/state/state.component';
+@NgModule({ imports: [StateComponent, CommonModule, FormsModule, IonicModule, ProfilePageRoutingModule], declarations: [ProfilePage] })
 export class ProfilePageModule {}

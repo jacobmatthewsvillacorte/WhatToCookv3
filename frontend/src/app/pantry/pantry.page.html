@@ -1,8 +1,8 @@
 <ion-content>
-  <main class="pantry-page wtc-tab-page">
+  <main class="page pantry-page wtc-tab-page">
     <section class="pantry-hero">
       <div>
-        <p class="eyebrow">YOUR KITCHEN</p>
+        <p class="wtc-eyebrow wtc-eyebrow--brand">YOUR KITCHEN</p>
         <h1>Pantry</h1>
         <p>Keep track of what is ready to cook.</p>
       </div>
@@ -27,7 +27,7 @@
       </ion-chip>
     </div>
 
-    <p class="message" *ngIf="message" role="status">{{ message }}</p>
+    <p class="wtc-notice" *ngIf="message" role="status">{{ message }}</p>
 
     <section *ngIf="loading" class="wtc-state wtc-state--loading" role="status">
       <ion-spinner aria-label="Loading pantry inventory"></ion-spinner><h2>Loading your pantry</h2>
@@ -39,7 +39,7 @@
     <ng-container *ngIf="!loading && !pantryLoadError">
       <ng-container *ngFor="let group of inventoryGroups()">
         <section class="inventory-section" *ngIf="inventoryVisible(group.key) && filteredItems(group.items).length">
-          <div class="section-heading"><div><h2>{{ group.title }}</h2><p>{{ group.shared ? 'Shared inventory' : 'Personal inventory' }}</p></div><div class="section-heading__actions"><ion-button *ngIf="expiredItems(group.items).length" fill="clear" size="small" color="danger" (click)="deleteExpiredItems(group.items)">Delete expired ({{ expiredItems(group.items).length }})</ion-button><span>{{ filteredItems(group.items).length }} items</span></div></div>
+          <div class="wtc-section-heading"><div><h2>{{ group.title }}</h2><p>{{ group.shared ? 'Shared inventory' : 'Personal inventory' }}</p></div><div class="section-heading__actions"><ion-button *ngIf="expiredItems(group.items).length" fill="clear" size="small" color="danger" (click)="deleteExpiredItems(group.items)">Delete expired ({{ expiredItems(group.items).length }})</ion-button><span>{{ filteredItems(group.items).length }} items</span></div></div>
           <article class="pantry-card" *ngFor="let item of filteredItems(group.items)" [class.attention]="stockState(item) === 'expiring'">
             <div class="ingredient-icon" [class.warning]="stockState(item) !== 'good'"><ion-icon [name]="itemCategory(item) === 'Protein' ? 'fish-outline' : itemCategory(item) === 'Produce' ? 'leaf-outline' : 'basket-outline'"></ion-icon></div>
             <div class="item-copy"><h3>{{ item.name }}</h3><p>{{ item.quantity || item.quantity_value || '—' }} {{ item.unit || '' }}</p><span class="state" [class.low]="stockState(item) === 'low'" [class.expiring]="stockState(item) === 'expiring'"><ion-icon [name]="stockState(item) === 'good' ? 'checkmark-circle-outline' : 'alert-circle-outline'"></ion-icon>{{ stockLabel(item) }}</span></div>
@@ -61,7 +61,7 @@
     </ng-container>
 
     <section class="add-sheet" *ngIf="addPanelOpen" aria-label="Add ingredient">
-      <div class="sheet-heading"><div><p class="eyebrow">PANTRY ITEM</p><h2>{{ editingId ? 'Edit ingredient' : 'Add ingredient' }}</h2></div><ion-button fill="clear" (click)="closeAddPanel()" aria-label="Close add ingredient"><ion-icon name="close-outline"></ion-icon></ion-button></div>
+      <div class="sheet-heading"><div><p class="wtc-eyebrow wtc-eyebrow--brand">PANTRY ITEM</p><h2>{{ editingId ? 'Edit ingredient' : 'Add ingredient' }}</h2></div><ion-button fill="clear" (click)="closeAddPanel()" aria-label="Close add ingredient"><ion-icon name="close-outline"></ion-icon></ion-button></div>
       <p class="sheet-intro">Choose a quick input method, or add the details yourself. You will review before anything is saved.</p>
 
       <div class="input-methods">
@@ -80,7 +80,7 @@
       <div class="manual-heading"><span></span><p>or add manually</p><span></span></div>
       <ion-select [(ngModel)]="form.family_id" label="Add to" labelPlacement="stacked" interface="action-sheet"><ion-select-option [value]="null">My personal pantry</ion-select-option><ion-select-option *ngFor="let family of families" [value]="family.id">{{ family.name }} shared pantry</ion-select-option></ion-select>
       <ion-input [(ngModel)]="form.name" (ionInput)="suggestUnit()" label="Ingredient name" labelPlacement="stacked" placeholder="e.g. Coconut milk"></ion-input>
-      <p *ngIf="ingredientValidationError" class="message" role="alert">{{ ingredientValidationError }}</p>
+      <p *ngIf="ingredientValidationError" class="wtc-notice wtc-notice--danger" role="alert">{{ ingredientValidationError }}</p>
       <div class="form-row"><div class="quantity-stepper"><ion-label>Quantity</ion-label><div><ion-button fill="outline" size="small" (click)="adjustQuantity(-1)">−</ion-button><ion-input [(ngModel)]="form.quantity" inputmode="decimal" aria-label="Quantity"></ion-input><ion-button fill="outline" size="small" (click)="adjustQuantity(1)">+</ion-button></div></div><ion-select [(ngModel)]="form.unit" label="Unit" labelPlacement="stacked" placeholder="Choose a unit"><ion-select-option *ngFor="let unit of commonUnits" [value]="unit">{{ unit }}</ion-select-option></ion-select></div>
       <ion-button fill="clear" size="small" (click)="showAdvancedDetails = !showAdvancedDetails">{{ showAdvancedDetails ? 'Hide optional details' : 'Add expiry and storage details' }}</ion-button>
       <ng-container *ngIf="showAdvancedDetails"><div class="form-row"><ion-input [(ngModel)]="form.purchase_date" label="Purchase date" labelPlacement="stacked" type="date"></ion-input><ion-input [(ngModel)]="form.expiry_date" label="Expiry date" labelPlacement="stacked" type="date"></ion-input></div><ion-select [(ngModel)]="form.storage_type" label="Storage" labelPlacement="stacked"><ion-select-option value="room_temperature">Room temperature</ion-select-option><ion-select-option value="refrigerated">Refrigerated</ion-select-option><ion-select-option value="frozen">Frozen</ion-select-option><ion-select-option value="unknown">Unknown</ion-select-option></ion-select></ng-container>

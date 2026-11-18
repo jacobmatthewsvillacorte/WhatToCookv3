@@ -5,9 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { DashboardPage } from './dashboard.page';
 
 import { DashboardPageRoutingModule } from './dashboard-routing.module';
+import { StateComponent } from '../shared/state/state.component';
 
 @NgModule({
-  imports: [
+  imports: [StateComponent, 
     IonicModule,
     CommonModule,
     FormsModule,

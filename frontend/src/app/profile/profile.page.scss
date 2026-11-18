@@ -1,10 +1,6 @@
-.page {
-  padding: 18px 14px var(--wtc-space-8);
-}
-
 .intro {
   display: flex;
-  gap: 13px;
+  gap: var(--wtc-space-3);
   align-items: center;
   margin: var(--wtc-space-1) var(--wtc-space-2) var(--wtc-space-5);
 }
@@ -22,15 +18,15 @@
 }
 
 .intro h1 {
-  margin: 0 0 5px;
+  margin: 0 0 var(--wtc-space-1);
   color: var(--wtc-color-text);
-  font-size: 21px;
+  font-size: var(--wtc-font-size-lg);
 }
 
 .intro p {
   margin: 0;
   color: var(--wtc-color-text-muted);
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
   line-height: 1.35;
 }
 
@@ -39,23 +35,17 @@
 }
 
 .page ion-textarea {
-  margin-top: 15px;
+  margin-top: var(--wtc-space-4);
 }
 
 .visibility {
   --min-height: 38px;
-  font-size: 13px;
+  font-size: var(--wtc-font-size-sm);
   color: var(--wtc-color-text-muted);
 }
 
 .page ion-button {
   margin-top: 18px;
-}
-
-.message {
-  margin: 14px var(--wtc-space-2);
-  color: var(--ion-color-success);
-  font-size: var(--wtc-font-size-sm);
 }
 
 @media (min-width: 52rem) {

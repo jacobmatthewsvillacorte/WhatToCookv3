@@ -11,7 +11,7 @@
 .mode-toggle button.active { color:var(--ion-color-primary); border-bottom:2px solid var(--ion-color-primary); font-weight:700; }
 .auth-card ion-input { margin:14px 0; }
 .auth-card ion-button { margin:22px 0 0; --border-radius:12px; }
-.error { color:var(--ion-color-danger); font-size:13px; margin:var(--wtc-space-2) 0; }
+.error { color:var(--ion-color-danger); font-size:var(--wtc-font-size-sm); margin:var(--wtc-space-2) 0; }
 
 @media (min-width: 52rem) {
   .auth-shell { max-width:920px; display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(22rem, .9fr); align-items:center; gap:clamp(3rem, 8vw, 7rem); padding-inline:clamp(2rem, 7vw, 6rem); }

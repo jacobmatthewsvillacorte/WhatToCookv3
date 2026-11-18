@@ -9,9 +9,9 @@
 </ion-header>
 
 <ion-content>
-  <main class="page">
+  <main class="page wtc-direct-page">
     <ion-spinner *ngIf="loading" class="loading" aria-label="Loading planned meal"></ion-spinner>
-    <ion-text color="danger" *ngIf="message"><p class="message">{{ message }}</p></ion-text>
+    <ion-text color="danger" *ngIf="message"><p class="wtc-notice">{{ message }}</p></ion-text>
 
     <ng-container *ngIf="!loading && plan">
       <ion-card>
@@ -28,7 +28,7 @@
       </ion-card>
 
       <section *ngIf="!isCompleted" aria-labelledby="ingredients-heading">
-        <div class="section-heading">
+        <div class="wtc-section-heading">
           <div><h2 id="ingredients-heading">Ingredient check</h2><p>This is checked against your {{ preflight?.pantry_scope === 'family' ? 'shared household' : 'personal' }} pantry.</p></div>
           <ion-button size="small" fill="clear" (click)="checkIngredients()" [disabled]="checking || actionPending">{{ checking ? 'Checking…' : 'Recheck' }}</ion-button>
         </div>

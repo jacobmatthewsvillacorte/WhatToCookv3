@@ -1,4 +1,4 @@
-.cooking-page { display: grid; gap: var(--wtc-space-5); max-width: 46rem; padding-bottom: 6.5rem; }
+.cooking-page { display: grid; gap: var(--wtc-space-5); padding-bottom: 6.5rem; }
 .session-header { display: grid; gap: var(--wtc-space-2); }
 .cooking-image { display: block; width: 100%; max-height: 14rem; object-fit: cover; aspect-ratio: 16 / 9; border-radius: var(--wtc-radius-lg); }
 .session-header h1, .session-header p, .progress-heading { margin: 0; }
@@ -25,8 +25,30 @@
 .timer-controls ion-input { width: 7rem; }
 .cooking-tip { display: flex; gap: var(--wtc-space-3); padding: var(--wtc-space-4); border-radius: var(--wtc-radius-lg); background: var(--wtc-color-warning-soft); color: var(--wtc-color-warning); }
 .cooking-tip ion-icon { flex: 0 0 auto; margin-top: .1rem; font-size: 1.35rem; }
-.cooking-tip p { margin: 0; color: inherit; }.cooking-tip p + p { margin-top: var(--wtc-space-1); line-height: var(--wtc-line-height-body); }
-.ingredients-card ion-list { margin-top: var(--wtc-space-3); }.ingredients-card ion-item { --padding-start: 0; --inner-padding-end: 0; --background: transparent; }.ingredient--checked ion-label { color: var(--wtc-color-text-muted); text-decoration: line-through; }
-.finish { display: grid; gap: var(--wtc-space-3); padding: var(--wtc-space-5); margin-bottom: var(--wtc-space-5); }.finish ion-note { line-height: 1.4; }
-.cooking-navigation { border-top: 1px solid var(--wtc-color-border); box-shadow: 0 -6px 20px rgba(72, 44, 34, .08); }.cooking-navigation ion-toolbar { --min-height: 4.5rem; }.cooking-navigation__controls { width: min(100%, 46rem); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 0 auto; padding: 0 var(--wtc-space-2); }.cooking-navigation__controls ion-button:last-child { justify-self: end; }.cooking-navigation__controls > span { color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-xs); font-weight: 700; text-align: center; }
-@media (max-width: 25rem) { .step-card { min-height: 14rem; padding: var(--wtc-space-6) var(--wtc-space-5); }.timer-controls ion-input { width: 100%; }.cooking-navigation__controls > span { display: none; }.cooking-navigation__controls { grid-template-columns: 1fr 1fr; }; }
+.cooking-tip p { margin: 0; color: inherit; }
+
+.cooking-tip p + p { margin-top: var(--wtc-space-1); line-height: var(--wtc-line-height-body); }
+.ingredients-card ion-list { margin-top: var(--wtc-space-3); }
+
+.ingredients-card ion-item { --padding-start: 0; --inner-padding-end: 0; --background: transparent; }
+
+.ingredient--checked ion-label { color: var(--wtc-color-text-muted); text-decoration: line-through; }
+.finish { display: grid; gap: var(--wtc-space-3); padding: var(--wtc-space-5); margin-bottom: var(--wtc-space-5); }
+
+.finish ion-note { line-height: 1.4; }
+.cooking-navigation { border-top: 1px solid var(--wtc-color-border); box-shadow: 0 -6px 20px rgba(72, 44, 34, .08); }
+
+.cooking-navigation ion-toolbar { --min-height: 4.5rem; }
+
+.cooking-navigation__controls { width: min(100%, 46rem); display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin: 0 auto; padding: 0 var(--wtc-space-2); }
+
+.cooking-navigation__controls ion-button:last-child { justify-self: end; }
+
+.cooking-navigation__controls > span { color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-xs); font-weight: 700; text-align: center; }
+@media (max-width: 25rem) { .step-card { min-height: 14rem; padding: var(--wtc-space-6) var(--wtc-space-5); }
+
+.timer-controls ion-input { width: 100%; }
+
+.cooking-navigation__controls > span { display: none; }
+
+.cooking-navigation__controls { grid-template-columns: 1fr 1fr; }; }

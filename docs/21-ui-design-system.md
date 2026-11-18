@@ -25,14 +25,17 @@
 
 | Class | Use |
 | --- | --- |
-| `wtc-page` | Page container: gutters, max width |
+| `wtc-tab-page`, `wtc-direct-page`, `wtc-page--wide` | Put on the page root next to `page`: shared gutter and max width (44 rem, or 62 rem wide). Never set a page's own `max-width` or `padding` |
 | `wtc-section` | Vertical block with consistent spacing |
 | `wtc-card` | Surface with border, radius, shadow |
-| `wtc-eyebrow` | Small uppercase label above a title |
+| `wtc-eyebrow`, `wtc-eyebrow--brand` | Small uppercase label above a title (brand colour with the modifier) |
 | `wtc-title-display` | Large display heading |
 | `wtc-stack`, `wtc-inline` | Vertical / horizontal flex with token gap |
+| `wtc-form`, `wtc-field-row` | Stack form controls / put two side by side (use instead of `ion-grid`) |
+| `wtc-section-heading` | Section title row: heading left, link or count right |
+| `wtc-notice`, `--danger`, `--warning` | Inline feedback after an action or failed request |
 | `wtc-field` | Form field wrapper |
-| `wtc-state`, `wtc-state--loading` / `--empty` / `--error` / `--compact`, `wtc-state__icon`, `wtc-empty-state` | Loading, empty and error blocks. Use these instead of writing one per page |
+| `wtc-state`, `wtc-state--loading` / `--empty` / `--error` / `--compact`, `wtc-state__icon`, `wtc-empty-state` | Loading, empty and error blocks. Prefer the `<app-state>` component (below) |
 | `wtc-status-chip` plus `--success` / `--warning` / `--danger` / `--info` / `--neutral` | Status pills. Use for Ready / Low stock / Missing / Needs review |
 
 ## Rules
@@ -59,14 +62,19 @@ Fixed after looking at the running app (screenshots at 390 px, light and dark):
 - **Forms:** added `wtc-form` (stacks controls) and `wtc-field-row` (two controls side by side). The shopping list used `ion-grid`, which indented the quantity/unit row; it now uses `wtc-field-row`. Use these instead of `ion-grid` for forms.
 - **Shopping list** rendered an empty white `ion-list` strip when there were no items; it now renders only when items exist.
 
-Not done, on purpose (needs a design decision):
+Second pass (all verified on screenshots, light and dark, 390 px):
 
-- **One page container.** Pages choose their own max width and padding (`meal-history` 680 px, `meal-details` 760 px, `meal-plan` 980 px, others 44 rem). Side gutters therefore differ by a few pixels from screen to screen (12 to 20 px). `wtc-page` exists; decide a width per page, then switch.
-- **Per-page `.eyebrow`, `.message`, `.section-heading`** still differ in colour, weight and spacing. Pick one design each, add it to `global.scss`, delete the page copies. (The dashboard now uses `wtc-eyebrow`.)
+- **One page container.** Every page root now carries `page` plus `wtc-tab-page` or `wtc-direct-page` (meal plan adds `wtc-page--wide`). The per-page `.page { max-width; padding }` rules and the three narrow-phone `.page` padding overrides were deleted, so every screen has the same 20 px gutter. Widths that changed: meal details, plan review, plan setup, meal history and shopping list now use the standard 44 rem; cooking lost its private 46 rem.
+- **Shared eyebrow, notice and section heading.** `.eyebrow`, `.message`, `.notice`, `.detail-message` and `.section-heading` were redefined 3 to 14 times each. They are now `wtc-eyebrow--brand`, `wtc-notice` (with `--danger` for errors and `--warning` for cautions) and `wtc-section-heading`; the per-page copies are gone.
+- **`<app-state>` component** (`src/app/shared/state/`) replaces the repeated five-line loading and error blocks on 7 pages (14 blocks). It renders the same markup as `.wtc-state`, so it looks identical. Convert the remaining blocks (empty states with custom buttons in `pantry`, `more`, `cooking`, `recipe-detail`) when you next touch those pages; project extra buttons as content.
+- **Recipe placeholder** (`assets/shapes.svg`) was a loud multicolour shape set. It is now a calm plate-and-cutlery tint of the brand colour that works on light and dark surfaces.
+- **Off-grid values** within 1 px of a token (3, 5, 7, 9, 11, 13, 15, 17, 19, 21, 23, 25 px) were rounded to the nearest token. About 150 declarations with px remain, mostly legitimate fixed sizes (widths, heights, icon boxes).
+
+Not done (needs a design decision or is a larger refactor):
+
 - **Stacked form labels are small** (about 10-11 px) because Ionic scales them inside the control. Fixing it needs Ionic's label parts or a different label pattern.
-- **Recipe images** fall back to a generic coloured placeholder; a branded placeholder would look calmer.
-- **Odd values** with no matching token (13 px, 9 px, 7 px, 16 px/28 px radii), about 200 declarations, 72 in `pantry.page.scss`. Round each to the nearest token when you next edit that screen.
-- `plan-review` and `plan-setup` still hold repeated card and day-navigator blocks that should become shared components.
+- `plan-review` (about 450 lines) and `plan-setup` (about 400 lines) still hold repeated card and day-navigator blocks that should become shared components. They are used in at most two places each today, so extraction is optional.
+- Remaining 16 px and 28 px radii and other odd sizes have no matching token; add tokens if they are intentional.
 
 ## How to check a UI change
 

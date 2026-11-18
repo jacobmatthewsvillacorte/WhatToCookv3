@@ -1,5 +1,4 @@
 .recipe-detail { display: grid; gap: var(--wtc-space-6); }
-.detail-message { margin: 0; color: var(--wtc-color-danger); }
 .recipe-hero { overflow: hidden; border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-xl); background: var(--wtc-color-surface); box-shadow: var(--wtc-shadow-card); }
 .hero-image { display: block; width: 100%; height: clamp(14rem, 52vw, 24rem); object-fit: cover; background: var(--wtc-color-surface-muted); }
 .recipe-hero__content { display: grid; gap: var(--wtc-space-3); padding: var(--wtc-space-5); }
@@ -15,9 +14,6 @@
 .servings-control ion-note { white-space: nowrap; }
 .cook-now { margin: 0; }
 .recipe-section { display: grid; gap: var(--wtc-space-3); }
-.section-heading { display: flex; align-items: end; justify-content: space-between; gap: var(--wtc-space-3); }
-.section-heading h2, .section-heading p { margin: 0; }
-.section-heading > span { color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-sm); }
 .ingredients-section ion-item ion-icon { color: var(--wtc-color-primary); font-size: .7rem; }
 .nutrition-status { margin: 0; padding: var(--wtc-space-3); border-radius: var(--wtc-radius-md); background: var(--wtc-color-neutral-soft); color: var(--wtc-color-text-muted); font-size: var(--wtc-font-size-sm); }
 .nutrition-status ion-icon { color: var(--wtc-color-primary); font-size: 1.2rem; }

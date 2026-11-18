@@ -1,22 +1,13 @@
 <ion-content>
   <main class="page wtc-tab-page wtc-page--wide">
-    <p class="message" *ngIf="message" role="status">{{ message }}</p>
-    <section *ngIf="loading" class="wtc-state wtc-state--loading" role="status" aria-live="polite">
-      <ion-spinner aria-label="Loading your meal plan"></ion-spinner>
-      <h2>Loading your meal plan</h2>
-      <p>Getting your meals, diners, and recipe options ready.</p>
-    </section>
+    <p class="wtc-notice" *ngIf="message" role="status">{{ message }}</p>
+    <app-state *ngIf="loading" kind="loading" heading="Loading your meal plan" message="Getting your meals, diners, and recipe options ready."></app-state>
 
-    <section *ngIf="!loading && loadError" class="wtc-state wtc-state--error" role="alert">
-      <ion-icon class="wtc-state__icon" name="alert-circle-outline" aria-hidden="true"></ion-icon>
-      <h2>We couldn't load your plan</h2>
-      <p>{{ loadError }}</p>
-      <ion-button fill="outline" (click)="load()">Try again</ion-button>
-    </section>
+    <app-state *ngIf="!loading && loadError" kind="error" heading="We couldn't load your plan" [message]="loadError" actionLabel="Try again" (action)="load()"></app-state>
 
     <ng-container *ngIf="!loading && !loadError">
       <section class="planner-heading">
-        <div class="planner-heading__copy"><p class="eyebrow">MEAL PLANNING</p><h1>Weekly plan</h1><p class="intro">See what is coming up, what your pantry can cover, and what to add to your grocery list.</p></div>
+        <div class="planner-heading__copy"><p class="wtc-eyebrow wtc-eyebrow--brand">MEAL PLANNING</p><h1>Weekly plan</h1><p class="intro">See what is coming up, what your pantry can cover, and what to add to your grocery list.</p></div>
         <ion-item lines="none" class="context-picker">
           <ion-icon name="people-outline" slot="start"></ion-icon>
           <ion-select label="Planning for" [(ngModel)]="contextId" (ionChange)="changeContext()">
@@ -28,7 +19,7 @@
       </section>
 
       <section class="week-summary" aria-label="Current week">
-        <div><p class="eyebrow">THIS WEEK</p><h2>{{ periodLabel() }}</h2><p>{{ plannedMealCount }} planned meal{{ plannedMealCount === 1 ? '' : 's' }}</p></div>
+        <div><p class="wtc-eyebrow wtc-eyebrow--brand">THIS WEEK</p><h2>{{ periodLabel() }}</h2><p>{{ plannedMealCount }} planned meal{{ plannedMealCount === 1 ? '' : 's' }}</p></div>
         <ion-button fill="clear" size="small" (click)="currentPeriod()">Today</ion-button>
       </section>
 
@@ -49,10 +40,10 @@
         <ion-button fill="outline" size="small" (click)="openShoppingList()"><ion-icon slot="start" name="cart-outline"></ion-icon>Grocery list</ion-button>
       </section>
 
-      <p class="notice" *ngIf="household && !diners.length">Add diner profiles in Family before scheduling shared meals.</p>
+      <p class="wtc-notice wtc-notice--warning" *ngIf="household && !diners.length">Add diner profiles in Family before scheduling shared meals.</p>
 
       <section id="selected-day-agenda" class="agenda" *ngIf="selectedDay && !showAllPlannedDays" role="tabpanel" aria-label="Selected day agenda">
-        <header><div><p class="eyebrow">SELECTED DAY</p><h2>{{ selectedDayLabel(selectedDay) }}</h2></div><ion-badge *ngIf="selectedDayPlans.length" color="success">{{ selectedDayPlans.length }} planned</ion-badge></header>
+        <header><div><p class="wtc-eyebrow wtc-eyebrow--brand">SELECTED DAY</p><h2>{{ selectedDayLabel(selectedDay) }}</h2></div><ion-badge *ngIf="selectedDayPlans.length" color="success">{{ selectedDayPlans.length }} planned</ion-badge></header>
         <div class="slot" *ngFor="let type of mealTypes">
             <span class="meal-type">{{ type }}</span>
             <ng-container *ngIf="planFor(selectedDay, type) as plan; else addMeal">
@@ -78,7 +69,7 @@
       </section>
 
       <section class="all-planned" *ngIf="showAllPlannedDays" aria-label="All planned days">
-        <header><div><p class="eyebrow">FULL SCHEDULE</p><h2>All planned days</h2></div><ion-button fill="clear" size="small" (click)="showAllPlannedDays = false">Back to agenda</ion-button></header>
+        <header><div><p class="wtc-eyebrow wtc-eyebrow--brand">FULL SCHEDULE</p><h2>All planned days</h2></div><ion-button fill="clear" size="small" (click)="showAllPlannedDays = false">Back to agenda</ion-button></header>
         <article *ngFor="let day of allPlannedDays"><button type="button" (click)="selectDay(day)"><strong>{{ selectedDayLabel(day) }}</strong><span>{{ plannedCount(day) }} planned meal{{ plannedCount(day) === 1 ? '' : 's' }}</span></button><div><button type="button" *ngFor="let plan of plansForDay(day)" (click)="openMealDetails(plan)">{{ plan.meal_type | titlecase }} · {{ recipeName(plan) }}</button></div></article>
         <p *ngIf="!allPlannedDays.length" class="empty">No meals are planned for this week yet.</p>
       </section>
