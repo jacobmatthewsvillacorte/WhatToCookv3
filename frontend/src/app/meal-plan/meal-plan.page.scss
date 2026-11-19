@@ -4,7 +4,7 @@
 .planner-heading .intro { margin: 0; }
 .planner-heading__copy h1 { margin: var(--wtc-space-1) 0 var(--wtc-space-2); font-size: clamp(1.75rem, 7vw, 2.25rem); letter-spacing: var(--wtc-letter-spacing-tight); }
 
-.context-picker { margin: 0; border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-md); --background: var(--wtc-color-surface-raised); }
+.context-picker { margin: var(--wtc-space-4) 0 0; border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-md); --background: var(--wtc-color-surface-raised); }
 .week-summary { display: flex; align-items: center; justify-content: space-between; gap: var(--wtc-space-3); margin: var(--wtc-space-5) 0 var(--wtc-space-1); padding: var(--wtc-space-4); border: 1px solid var(--wtc-color-border); border-radius: var(--wtc-radius-lg); background: var(--wtc-color-surface-raised); box-shadow: var(--wtc-shadow-xs); }
 .week-summary h2, .week-summary p { margin: 0; }
 .week-summary h2 { font-size: var(--wtc-font-size-lg); }

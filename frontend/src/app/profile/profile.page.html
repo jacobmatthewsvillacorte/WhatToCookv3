@@ -13,7 +13,7 @@
         <ion-card-content>
           <ng-container *ngFor="let field of fields">
             <ion-textarea [(ngModel)]="values[field.key]" [label]="field.label" labelPlacement="stacked" [placeholder]="field.hint" autoGrow="true"></ion-textarea>
-            <ion-item lines="none" class="visibility"><ion-label>Share with family</ion-label><ion-toggle [(ngModel)]="visibility[field.key]"></ion-toggle></ion-item>
+            <ion-item lines="none" class="visibility"><ion-label>Share with family</ion-label><ion-toggle slot="end" [(ngModel)]="visibility[field.key]"></ion-toggle></ion-item>
           </ng-container>
           <ion-button expand="block" (click)="save()" [disabled]="saving">{{ saving ? 'Saving…' : 'Save profile' }}</ion-button>
         </ion-card-content>

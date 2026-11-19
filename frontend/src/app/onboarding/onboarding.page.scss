@@ -20,9 +20,9 @@
   height: 74px;
   display: grid;
   place-items: center;
-  background: var(--wtc-color-success-soft);
-  color: var(--wtc-color-success);
-  border-radius: 28px;
+  background: var(--wtc-color-primary-soft);
+  color: var(--wtc-color-primary);
+  border-radius: var(--wtc-radius-xl);
   font-size: 38px;
   margin: 28px 0 var(--wtc-space-5);
 }
